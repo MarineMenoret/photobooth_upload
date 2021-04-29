@@ -1,0 +1,11 @@
+{
+  "targets": {
+    "angular-electron-5f77c": {
+      "hosting": {
+        "angular-electron": [
+          "angular-electron-5f77c"
+        ]
+      }
+    }
+  }
+}

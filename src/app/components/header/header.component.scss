@@ -1,0 +1,12 @@
+:host {
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 50px;
+  }
+
+  header img {
+    max-height: 50px;
+  }
+}

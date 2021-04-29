@@ -1,0 +1,32 @@
+<app-header></app-header>
+<ng-template #showLogin>
+  <ngx-auth-firebaseui-login [providers]="[]" [registrationEnabled]="false" [resetPasswordEnabled]="false">
+  </ngx-auth-firebaseui-login>
+</ng-template>
+
+<ng-container *ngIf="auth.user | async as user; else showLogin">
+  <mat-card>
+    <mat-card-title>Photobooth upload</mat-card-title>
+    <button mat-raised-button class="selectFolderBtn" (click)="onFolderSelect()">Select folder</button>
+    <ng-container *ngIf="fileNames.length > 0">
+      <mat-list [ngClass]="{'uploadFinalized': uploadFinalized === true}">
+        <mat-list-item *ngFor="let file of fileNames">
+          <div class="list-line">
+            <span>{{ file }}</span>
+            <ng-container *ngIf="uploadPercentage[file] > 0">
+              <mat-progress-bar mode="determinate" [value]="uploadPercentage[file]"></mat-progress-bar>
+            </ng-container>
+          </div>
+          <mat-divider></mat-divider>
+        </mat-list-item>
+      </mat-list>
+      <ng-container *ngIf="!uploadFinalized">
+        <button mat-raised-button class="uploadBtn btn" (click)="onUploadBtnClick()">Upload Files</button>
+        <button mat-raised-button color="warn" class="btn" (click)="onCancelBtnClick()">Cancel</button>
+      </ng-container>
+    </ng-container>
+    <div class="uploadStatusMsg" [ngClass]="{'uploadCanceled': uploadCanceled === true}">
+      {{ uploadStatusMsg }}
+    </div>
+  </mat-card>
+</ng-container>

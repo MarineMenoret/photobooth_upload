@@ -1,0 +1,102 @@
+:host {
+  .mat-card {
+      max-width: 50%;
+      margin: 0 auto;
+  }
+
+  .mat-card-title {
+    color : #7D7D7D;
+    margin-bottom: 30px;
+  }
+
+  .selectFolderBtn{
+    margin-bottom: 30px;
+  }
+
+  .mat-list{
+    margin-bottom: 30px;
+  }
+
+  .list-line{
+    display: flex;
+    width: 100%;
+  }
+
+  .list-line span {
+    min-width: 180px;
+  }
+
+  mat-progress-bar {
+    width: 100%;
+    height: 10px;
+  }
+
+  .btn{
+    color: white;
+    font-weight: bold;
+    margin-right: 15px;
+  }
+
+  .uploadBtn{
+    background-color: #1C83E9;
+  }
+
+  .uploadStatusMsg{
+    color: #1C83E9;
+  }
+
+  .uploadCanceled{
+    color: red;
+  }
+}
+
+.uploadFinalized .list-line{
+  color: #a09e9e;
+}
+
+//couleur de progression des progress-bar :
+::ng-deep .mat-progress-bar-fill::after{
+  background-color: #1C83E9 !important;
+}
+
+//couleur du buffer des progress-bar :
+::ng-deep .mat-progress-bar-buffer{
+  background-color: #9eccfa !important;
+}
+
+//upload progressbar grisées lorsque l'upload est terminé :
+::ng-deep .uploadFinalized .mat-progress-bar-fill::after{
+  background-color: #a09e9e !important;
+}
+
+//upload progressbar buffer grisées lorsque l'upload est terminé :
+::ng-deep .uploadFinalized .mat-progress-bar-buffer{
+  background-color: #bbb8b8 !important;
+}
+
+//couleur du bouton login :
+::ng-deep .mat-raised-button.mat-accent {
+  background-color: #1C83E9;
+}
+
+//couleur des icons fenêtre login :
+::ng-deep .mat-icon.mat-primary {
+  color: #1C83E9;
+}
+
+//couleur du placeholder dans l'input
+::ng-deep .mat-focused .mat-form-field-label {
+  color: #1C83E9 !important;
+}
+
+//couleur de la ligne de base de l'input:
+::ng-deep .mat-form-field-ripple {
+  background-color: #1C83E9 !important;
+}
+
+//couleur du texte des boutons des snackbar:
+::ng-deep .mat-simple-snackbar-action {
+  color: #1C83E9 !important;
+}
+
+

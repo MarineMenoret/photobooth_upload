@@ -1,0 +1,6 @@
+<header>
+  <div>
+    <img src="assets/logo/logo_t3l_text.png" />
+  </div>
+  <button *ngIf="auth.user | async as user" mat-raised-button (click)="logout()">Logout</button>
+</header>
