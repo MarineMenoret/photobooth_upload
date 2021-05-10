@@ -7,9 +7,11 @@
 <ng-container *ngIf="auth.user | async as user; else showLogin">
   <mat-card>
     <mat-card-title>Photobooth upload</mat-card-title>
-    <button mat-raised-button class="selectFolderBtn" (click)="onFolderSelect()">Select folder</button>
+    <button mat-raised-button class="selectFolderBtn" (click)="onFolderSelect()">
+      Select folder
+    </button>
     <ng-container *ngIf="fileNames.length > 0">
-      <mat-list [ngClass]="{'uploadFinalized': uploadFinalized === true}">
+      <mat-list [ngClass]="{ uploadFinalized: uploadFinalized === true }">
         <mat-list-item *ngFor="let file of fileNames">
           <div class="list-line">
             <span>{{ file }}</span>
@@ -21,12 +23,55 @@
         </mat-list-item>
       </mat-list>
       <ng-container *ngIf="!uploadFinalized">
-        <button mat-raised-button class="uploadBtn btn" (click)="onUploadBtnClick()">Upload Files</button>
-        <button mat-raised-button color="warn" class="btn" (click)="onCancelBtnClick()">Cancel</button>
+        <button mat-raised-button class="uploadBtn btn" (click)="onUploadBtnClick()">
+          Upload Files
+        </button>
+        <button mat-raised-button color="warn" class="btn" (click)="onCancelBtnClick()">
+          Cancel
+        </button>
       </ng-container>
     </ng-container>
-    <div class="uploadStatusMsg" [ngClass]="{'uploadCanceled': uploadCanceled === true}">
+    <div class="uploadStatusMsg" [ngClass]="{ uploadCanceled: uploadCanceled === true }">
       {{ uploadStatusMsg }}
     </div>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Photobooth download</mat-card-title>
+    </mat-card-header>
+    <ng-container *ngIf="!isDownloading; else filesDownload">
+      <mat-card-content>
+        <mat-selection-list [multiple]="false" (selectionChange)="onSelectionChange($event)">
+          <div mat-subheader>Folders</div>
+          <mat-list-option *ngFor="let folder of projectsFolders" [value]="folder.name">
+            <mat-icon mat-list-icon>folder</mat-icon>
+            <div mat-line>{{folder.name}}</div>
+          </mat-list-option>
+        </mat-selection-list>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-raised-button (click)="getProjectFolders()">REFRESH</button>
+        <button mat-raised-button [disabled]="selectedFolder? false: true" (click)="onDownload()">DOWNLOAD</button>
+      </mat-card-actions>
+    </ng-container>
+    <ng-template #filesDownload>
+      <mat-card-content>
+        <mat-list>
+          <div mat-subheader>Files</div>
+          <mat-list-item *ngFor="let file of filesToDownload; index as i">
+            <div class="downloadProgress">
+              <mat-icon mat-list-icon>insert_drive_file</mat-icon>
+              <div mat-line>{{file}}</div>
+              <mat-progress-bar mode="determinate" [value]="downloadPercentage[i]">
+              </mat-progress-bar>
+            </div>
+          </mat-list-item>
+        </mat-list>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-raised-button (click)="onPrevious()">PREVIOUS</button>
+      </mat-card-actions>
+    </ng-template>
   </mat-card>
 </ng-container>
