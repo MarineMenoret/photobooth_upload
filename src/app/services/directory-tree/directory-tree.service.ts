@@ -11,8 +11,10 @@ export class DirectoryTreeService implements OnDestroy {
 
   fs: any;
   path: any;
+  directoryPath: string;
   directory: string;
   fileNames: Array<string>;
+  filePaths: Array<string>;
   fileNames$: Subject<Array<string>>;
   directoryTree: Object;
   numberOfFilesUploaded: number;
@@ -23,6 +25,8 @@ export class DirectoryTreeService implements OnDestroy {
   uploadFinalized$: Subject<boolean> = new Subject();
   uploadStatusMsg$: Subject<string> = new Subject();;
   uploadCanceled: boolean;
+  isReadyToUpload: Subject<boolean>;
+  downloadSubscriptions: Array<Subscription>;
 
   constructor(
     private electronService: ElectronService,
@@ -36,6 +40,7 @@ export class DirectoryTreeService implements OnDestroy {
   initialize() {
     this.directory = '';
     this.fileNames = [];
+    this.filePaths = [];
     this.fileNames$ = new Subject();
     this.directoryTree = {};
     this.numberOfFilesUploaded = 0;
@@ -46,9 +51,12 @@ export class DirectoryTreeService implements OnDestroy {
     this.uploadFinalized$.next(false);
     this.uploadStatusMsg$.next('');
     this.uploadCanceled = false;
+    this.isReadyToUpload = new Subject<boolean>();
+    this.downloadSubscriptions = new Array<Subscription>();
   }
 
   setDirectoryPath(directoryPath) {
+    this.directoryPath = directoryPath;
     this.directory = directoryPath.split('/').pop();
     this.directoryTree = this.buildTree(directoryPath);
     this.fileNames$.next(this.fileNames);
@@ -78,12 +86,19 @@ export class DirectoryTreeService implements OnDestroy {
       result["name"] = elementName;
       result["path"] = elementPath;
       this.fileNames.push(elementName);
+      this.filePaths.push(elementPath.substring(elementPath.indexOf(this.directory)));
     }
     return result;
   }
 
   uploadDirectoryContent(directoryTree) {
-    this.uploadTreeNode([directoryTree]);
+    const isReadyToUploadSubscription = this.isReadyToUpload.subscribe((isReady) => {
+      if (isReady) {
+        this.uploadTreeNode([directoryTree]);
+      }
+    });
+    this.uploadFilePaths();
+    this.downloadSubscriptions.push(isReadyToUploadSubscription);
   }
 
   uploadTreeNode(element) {
@@ -154,17 +169,48 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
+  saveFilePaths(directory: string): void {
+    const path = this.path.join(directory, 'file_paths.txt');
+    const stream = this.electronService.fs.createWriteStream(path, { flags: 'a' });
+    this.filePaths.forEach(filePath => { stream.write(filePath.concat('\n')) });
+    stream.end();
+  }
+
+  uploadFilePaths(): void {
+    const path = this.path.join(this.directoryPath, 'file_paths.txt');
+    const file = this.fs.readFileSync(path);
+    const relativePath = path.substring(path.indexOf(this.directory));
+
+    let task = this.storageService.uploadFile(relativePath, file, 'txt');
+    this.uploadTasks.push(task);
+
+    const snapshotChangesSubsription = task.snapshotChanges().subscribe(
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        console.log('Upload is ' + progress + '% done');
+      },
+      (error) => { console.log(error) },
+      () => {
+        this.isReadyToUpload.next(true);
+        console.log('File paths successfully uploaded.');
+      }
+    );
+    this.downloadSubscriptions.push(snapshotChangesSubsription);
+  }
+
   ngOnDestroy() {
     if (this.getUploadPercentageSub.length > 0) {
-      for(let i=0; i<this.getUploadPercentageSub.length; i++) {
+      for (let i = 0; i < this.getUploadPercentageSub.length; i++) {
         this.getUploadPercentageSub[i].unsubscribe();
       }
     }
 
     if (this.getUploadStatusSub.length > 0) {
-      for(let i=0; i<this.getUploadStatusSub.length; i++) {
+      for (let i = 0; i < this.getUploadStatusSub.length; i++) {
         this.getUploadStatusSub[i].unsubscribe();
       }
     }
+
+    this.downloadSubscriptions.forEach(subscription => subscription.unsubscribe);
   }
 }

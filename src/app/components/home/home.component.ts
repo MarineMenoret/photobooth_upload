@@ -98,6 +98,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             directoryPath
           );
           this.fileNames = this.directoryTreeService.getFileNames();
+          this.directoryTreeService.saveFilePaths(directoryPath);
           console.log("directoryTree :", this.directoryTree);
         }
       });
@@ -128,7 +129,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   getProjectFolders(): void {
-    let getFoldersSubscription = this.storageService.getFolders().subscribe(
+    const getFoldersSubscription = this.storageService.getFolders().subscribe(
       (result) => {
         this.projectsFolders = result.prefixes;
       },
