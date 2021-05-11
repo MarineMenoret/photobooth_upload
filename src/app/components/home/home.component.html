@@ -53,11 +53,11 @@
       <ng-template #filesDownload>
         <mat-list>
           <div mat-subheader>Files</div>
-          <mat-list-item *ngFor="let file of filesToDownload">
+          <mat-list-item *ngFor="let file of filesToDownload; index as i">
             <div class="downloadProgress">
               <mat-icon mat-list-icon>insert_drive_file</mat-icon>
               <div mat-line>{{file}}</div>
-              <mat-progress-bar mode="determinate" [value]="0">
+              <mat-progress-bar mode="determinate" [value]="downloadPercentage[i]? downloadPercentage[i] : 0">
               </mat-progress-bar>
             </div>
           </mat-list-item>

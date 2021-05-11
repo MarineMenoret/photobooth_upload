@@ -9,22 +9,31 @@ import { ElectronService } from "../../core/services/electron/electron.service";
   providedIn: "root",
 })
 export class StorageService {
-  filePaths: Subject<string>;
-  fileNames: Subject<Array<string>>;
   subscriptions: Array<Subscription>;
+  filePaths: Subject<string>;
+  fileNames: Array<string>;
+  fileNamesNotification: Subject<Array<string>>;
+  filesDownloadProgress: Array<number>;
+  downloadProgressNotification: Subject<Array<number>>;
+  projectDownloadIsSuccessful: Subject<boolean>;
+
 
   constructor(private storage: AngularFireStorage, private electronService: ElectronService) {
-    this.filePaths = new Subject<string>();
-    this.fileNames = new Subject<Array<string>>();
     this.subscriptions = new Array<Subscription>();
+    this.filePaths = new Subject<string>();
+    this.fileNames = new Array<string>();
+    this.fileNamesNotification = new Subject<Array<string>>();
+    this.filesDownloadProgress = new Array<number>();
+    this.downloadProgressNotification = new Subject<Array<number>>();
+    this.projectDownloadIsSuccessful = new Subject<boolean>();
 
-    const subscription = this.filePaths.subscribe((path) => {
+    const filePathsSubscription = this.filePaths.subscribe((path) => {
       if (path) {
         this.getFileNames(path);
       }
     });
 
-    this.subscriptions.push(subscription);
+    this.subscriptions.push(filePathsSubscription);
   }
 
   /**
@@ -42,26 +51,45 @@ export class StorageService {
       .listAll();
   }
 
-  getFiles(folder: Reference): void {
+  downloadProject(folder: Reference, path: string): void {
+    this.fileNames.length = 0;
+    this.filesDownloadProgress.length = 0;
+
+    this.getFilePaths(folder, path);
+
+    const fileNamesSubscription = this.fileNamesNotification.subscribe((files) => {
+      if (files.length > 0) {
+        this.fileNames = files;
+        this.filesDownloadProgress = new Array<number>(files.length).fill(0);
+        this.getFiles(folder, path);
+        fileNamesSubscription.unsubscribe();
+      }
+    });
+  }
+
+  getFiles(folder: Reference, path: string): void {
     folder.listAll()
       .then((result) => {
         result.items.forEach((item) => {
-          item.getDownloadURL()
-            .then(url => this.downloadFile(url, item.name))
-            .catch(error => console.log(error))
+          if (item.name != 'file_paths.txt') {
+            const filePath = this.electronService.path.join(path, item.name);
+            item.getDownloadURL()
+              .then(url => this.downloadFile(url, filePath, true))
+              .catch(error => console.log(error))
+          }
         })
 
         result.prefixes.forEach((prefixe) => {
-          this.getFiles(prefixe)
+          this.getFiles(prefixe, path)
         })
       })
       .catch(error => console.log(error));
   }
 
   getFilePaths(folder: Reference, path: string): void {
-    path = this.electronService.path.join(path, 'file_paths.txt');
+    const filePath = this.electronService.path.join(path, 'file_paths.txt');
     folder.child('file_paths.txt').getDownloadURL()
-      .then(url => this.downloadFile(url, path))
+      .then(url => this.downloadFile(url, filePath, false))
       .catch(error => console.log(error));
   }
 
@@ -72,7 +100,7 @@ export class StorageService {
       } else {
         const paths = data.toString('utf-8').split('\n');
 
-        let fileNames = Array<string>();
+        const fileNames = Array<string>();
 
         paths.forEach((path) => {
           if (path) {
@@ -80,14 +108,16 @@ export class StorageService {
           }
         });
 
-        this.fileNames.next(fileNames);
+        this.fileNamesNotification.next(fileNames);
       }
     })
   }
 
-  downloadFile(file_url: string, path: string): void {
+  downloadFile(file_url: string, path: string, downloadProjectFiles: boolean): void {
     let received_bytes = 0;
     let total_bytes = 0;
+
+    const fileIndex = this.fileNames.indexOf(path.split('/').pop());
 
     let req = this.electronService.request({
       method: 'GET',
@@ -104,11 +134,30 @@ export class StorageService {
     req.on('data', (chunk) => {
       received_bytes += chunk.length;
       console.log((received_bytes * 100) / total_bytes + "% | " + received_bytes + " bytes out of " + total_bytes + " bytes.");
+
+      if (downloadProjectFiles) {
+        this.filesDownloadProgress[fileIndex] = (received_bytes * 100) / total_bytes;
+        this.downloadProgressNotification.next(this.filesDownloadProgress);
+      }
     });
 
     req.on('end', () => {
-      this.filePaths.next(path);
       console.log("File succesfully downloaded");
+
+      if (downloadProjectFiles) {
+        let isCompleted = true;
+
+        this.filesDownloadProgress.forEach((pourcentage) => {
+          if (pourcentage != 100) {
+            isCompleted = false;
+          }
+        });
+
+        this.projectDownloadIsSuccessful.next(isCompleted);
+
+      } else {
+        this.filePaths.next(path);
+      }
     });
   }
 

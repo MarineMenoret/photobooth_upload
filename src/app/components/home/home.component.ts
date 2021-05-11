@@ -29,6 +29,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   projectsFolders: Array<Reference>;
   selectedFolder: string;
   filesToDownload: Array<string>;
+  downloadPercentage: Array<number>;
   isDownloading: boolean;
   downloadSubscriptions: Array<Subscription>;
 
@@ -66,13 +67,32 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.projectsFolders = new Array<Reference>();
     this.selectedFolder = "";
     this.filesToDownload = new Array<string>();
+    this.downloadPercentage = new Array<number>();
     this.isDownloading = false;
     this.downloadSubscriptions = new Array<Subscription>();
-    const fileNamesSubscription = this.storageService.fileNames.subscribe((files) => {
+
+    const fileNamesSubscription = this.storageService.fileNamesNotification.subscribe((files) => {
       this.filesToDownload = files;
       this.ref.detectChanges();
     });
+
+    const downloadProgressSubscription = this.storageService.downloadProgressNotification.subscribe((downloadProgress) => {
+      this.downloadPercentage = downloadProgress;
+      this.ref.detectChanges();
+    });
+
+    const projectDownloadSubscription = this.storageService.projectDownloadIsSuccessful.subscribe((isCompleted) => {
+      if (isCompleted) {
+        this.dialog.showMessageBox({
+          message: 'Project download successfully completed.',
+          type: 'info'
+        });
+      }
+    });
+
     this.downloadSubscriptions.push(fileNamesSubscription);
+    this.downloadSubscriptions.push(downloadProgressSubscription);
+    this.downloadSubscriptions.push(projectDownloadSubscription);
   }
 
   onFolderSelect() {
@@ -147,7 +167,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }).then((directory) => {
       if (!directory.canceled) {
         const projectFolder = this.projectsFolders.find(folder => folder.name == this.selectedFolder);
-        this.storageService.getFilePaths(projectFolder, directory.filePaths[0]);
+        this.storageService.downloadProject(projectFolder, directory.filePaths[0]);
         this.isDownloading = true;
       }
     });
