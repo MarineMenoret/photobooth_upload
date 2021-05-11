@@ -1,5 +1,4 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
-import { Router } from "@angular/router";
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from "@angular/core";
 import { DirectoryTreeService } from "../../services/directory-tree/directory-tree.service";
 import { ElectronService } from "../../core/services/electron/electron.service";
 import { Subscription } from "rxjs";
@@ -7,7 +6,7 @@ import { AuthService } from "../../services/auth/auth.service";
 import { StorageService } from "../../services/storage/storage.service";
 import { MatSelectionListChange } from "@angular/material/list";
 import { Reference } from "@angular/fire/storage/interfaces";
-import { subscribeOn } from "rxjs/operators";
+import { Dialog } from "electron";
 
 @Component({
   selector: "app-home",
@@ -18,7 +17,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   auth: any;
   fs: any;
   path: any;
-  dialog: any;
+  dialog: Dialog;
   directoryTree: Object;
   fileNames: Array<any>;
   uploadPercentage: Object;
@@ -30,16 +29,15 @@ export class HomeComponent implements OnInit, OnDestroy {
   projectsFolders: Array<Reference>;
   selectedFolder: string;
   filesToDownload: Array<string>;
-  downloadPercentage: Array<number>;
   isDownloading: boolean;
   downloadSubscriptions: Array<Subscription>;
 
   constructor(
-    private router: Router,
     private authService: AuthService,
     private electronService: ElectronService,
     private directoryTreeService: DirectoryTreeService,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private ref: ChangeDetectorRef
   ) {
     this.auth = this.authService.getAuth();
     this.auth.authState.subscribe((authState) => {
@@ -67,19 +65,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.directoryTreeService.initialize();
     this.projectsFolders = new Array<Reference>();
     this.selectedFolder = "";
-    this.filesToDownload = Array<string>();
-    this.downloadPercentage = Array<number>();
-    this.storageService.downloadProgress.subscribe((file) => {
-      const index = this.filesToDownload.findIndex(value => value == file.fileName);
-      if (index == -1) {
-        this.downloadPercentage.push(file.downloadPercentage);
-        this.filesToDownload.push(file.fileName);
-      } else {
-        this.downloadPercentage[index] = file.downloadPercentage;
-      }
-    });
+    this.filesToDownload = new Array<string>();
     this.isDownloading = false;
     this.downloadSubscriptions = new Array<Subscription>();
+    const fileNamesSubscription = this.storageService.fileNames.subscribe((files) => {
+      this.filesToDownload = files;
+      this.ref.detectChanges();
+    });
+    this.downloadSubscriptions.push(fileNamesSubscription);
   }
 
   onFolderSelect() {
@@ -148,11 +141,16 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   onDownload(): void {
-    this.filesToDownload.length = 0;
-    this.downloadPercentage.length = 0;
-    this.isDownloading = true;
-    const folderToDownload = this.projectsFolders.find(folder => folder.name == this.selectedFolder);
-    this.storageService.getFiles(folderToDownload);
+    this.dialog.showOpenDialog({
+      title: "Choose a folder to save your files",
+      properties: ['openDirectory'],
+    }).then((directory) => {
+      if (!directory.canceled) {
+        const projectFolder = this.projectsFolders.find(folder => folder.name == this.selectedFolder);
+        this.storageService.getFilePaths(projectFolder, directory.filePaths[0]);
+        this.isDownloading = true;
+      }
+    });
   }
 
   onPrevious(): void {

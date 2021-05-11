@@ -1,8 +1,7 @@
 import { Injectable } from "@angular/core";
 import { AngularFireStorage } from "@angular/fire/storage";
 import { ListResult, Reference } from "@angular/fire/storage/interfaces";
-import { Net, Remote } from "electron";
-import { Observable, Subject } from "rxjs";
+import { Observable, Subject, Subscription } from "rxjs";
 import { AppConfig } from "../../../environments/environment";
 import { ElectronService } from "../../core/services/electron/electron.service";
 
@@ -10,10 +9,22 @@ import { ElectronService } from "../../core/services/electron/electron.service";
   providedIn: "root",
 })
 export class StorageService {
-  downloadProgress: Subject<{ fileName: string, downloadPercentage: number }>;
+  filePaths: Subject<string>;
+  fileNames: Subject<Array<string>>;
+  subscriptions: Array<Subscription>;
 
   constructor(private storage: AngularFireStorage, private electronService: ElectronService) {
-    this.downloadProgress = new Subject<{ fileName: string, downloadPercentage: number }>();
+    this.filePaths = new Subject<string>();
+    this.fileNames = new Subject<Array<string>>();
+    this.subscriptions = new Array<Subscription>();
+
+    const subscription = this.filePaths.subscribe((path) => {
+      if (path) {
+        this.getFileNames(path);
+      }
+    });
+
+    this.subscriptions.push(subscription);
   }
 
   /**
@@ -35,7 +46,6 @@ export class StorageService {
     folder.listAll()
       .then((result) => {
         result.items.forEach((item) => {
-          this.downloadProgress.next({ fileName: item.name, downloadPercentage: 0 })
           item.getDownloadURL()
             .then(url => this.downloadFile(url, item.name))
             .catch(error => console.log(error))
@@ -48,7 +58,34 @@ export class StorageService {
       .catch(error => console.log(error));
   }
 
-  downloadFile(file_url: string, fileName: string): void {
+  getFilePaths(folder: Reference, path: string): void {
+    path = this.electronService.path.join(path, 'file_paths.txt');
+    folder.child('file_paths.txt').getDownloadURL()
+      .then(url => this.downloadFile(url, path))
+      .catch(error => console.log(error));
+  }
+
+  getFileNames(path: string): void {
+    this.electronService.fs.readFile(path, (error, data) => {
+      if (error) {
+        console.log(error)
+      } else {
+        const paths = data.toString('utf-8').split('\n');
+
+        let fileNames = Array<string>();
+
+        paths.forEach((path) => {
+          if (path) {
+            fileNames.push(path.split('/').pop());
+          }
+        });
+
+        this.fileNames.next(fileNames);
+      }
+    })
+  }
+
+  downloadFile(file_url: string, path: string): void {
     let received_bytes = 0;
     let total_bytes = 0;
 
@@ -57,7 +94,7 @@ export class StorageService {
       uri: file_url
     });
 
-    let out = this.electronService.fs.createWriteStream(`/Users/elheche/Downloads/Test/${fileName}`);
+    let out = this.electronService.fs.createWriteStream(path);
     req.pipe(out);
 
     req.on('response', (data) => {
@@ -66,12 +103,16 @@ export class StorageService {
 
     req.on('data', (chunk) => {
       received_bytes += chunk.length;
-      this.downloadProgress.next({ fileName: fileName, downloadPercentage: (received_bytes * 100) / total_bytes });
       console.log((received_bytes * 100) / total_bytes + "% | " + received_bytes + " bytes out of " + total_bytes + " bytes.");
     });
 
     req.on('end', () => {
+      this.filePaths.next(path);
       console.log("File succesfully downloaded");
     });
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach(subscription => subscription.unsubscribe);
   }
 }
