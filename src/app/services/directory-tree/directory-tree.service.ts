@@ -177,7 +177,10 @@ export class DirectoryTreeService implements OnDestroy {
   }
 
   saveProjectStructure(directoryTree: any): Promise<DocumentReference<IProject>> {
-    const relativeDirectoryTree = this.buildRelativeTree(directoryTree, this.directory);
+    // Deep copy to prevent modification of the current directory tree.
+    const directoryTreeClone = JSON.parse(JSON.stringify(directoryTree));
+
+    const relativeDirectoryTree = this.buildRelativeTree(directoryTreeClone, this.directory);
 
     const project: IProject = {
       name: directoryTree.name,

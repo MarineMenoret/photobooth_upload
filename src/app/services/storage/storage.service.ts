@@ -161,15 +161,10 @@ export class StorageService {
     req.on('end', () => {
       console.log("File succesfully downloaded");
 
-      let isCompleted = true;
+      if (this.filesDownloadProgress.every(pourcentage => pourcentage == 100)) {
+        this.projectDownloadIsSuccessful.next(true);
+      }
 
-      this.filesDownloadProgress.forEach((pourcentage) => {
-        if (pourcentage != 100) {
-          isCompleted = false;
-        }
-      });
-
-      this.projectDownloadIsSuccessful.next(isCompleted);
     });
   }
 
