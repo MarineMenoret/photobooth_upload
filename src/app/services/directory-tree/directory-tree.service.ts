@@ -1,8 +1,10 @@
 import { Injectable, OnDestroy } from '@angular/core';
+import { AngularFirestore, AngularFirestoreCollection, DocumentReference } from '@angular/fire/firestore';
 import { Subject, Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { ElectronService } from '../../core/services/electron/electron.service';
 import { StorageService } from '../../services/storage/storage.service';
+import { IProject } from '../../shared/interfaces/project';
 
 @Injectable({
   providedIn: 'root'
@@ -11,8 +13,10 @@ export class DirectoryTreeService implements OnDestroy {
 
   fs: any;
   path: any;
+  directoryPath: string;
   directory: string;
   fileNames: Array<string>;
+  filePaths: Array<string>;
   fileNames$: Subject<Array<string>>;
   directoryTree: Object;
   numberOfFilesUploaded: number;
@@ -23,19 +27,23 @@ export class DirectoryTreeService implements OnDestroy {
   uploadFinalized$: Subject<boolean> = new Subject();
   uploadStatusMsg$: Subject<string> = new Subject();;
   uploadCanceled: boolean;
+  projectsCollection: AngularFirestoreCollection<IProject>;
 
   constructor(
     private electronService: ElectronService,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private afs: AngularFirestore
   ) {
     this.fs = this.electronService.fs;
     this.path = this.electronService.path;
+    this.projectsCollection = this.afs.collection<IProject>('projects');
     this.initialize();
   }
 
   initialize() {
     this.directory = '';
     this.fileNames = [];
+    this.filePaths = [];
     this.fileNames$ = new Subject();
     this.directoryTree = {};
     this.numberOfFilesUploaded = 0;
@@ -49,6 +57,7 @@ export class DirectoryTreeService implements OnDestroy {
   }
 
   setDirectoryPath(directoryPath) {
+    this.directoryPath = directoryPath;
     this.directory = directoryPath.split('/').pop();
     this.directoryTree = this.buildTree(directoryPath);
     this.fileNames$.next(this.fileNames);
@@ -78,12 +87,15 @@ export class DirectoryTreeService implements OnDestroy {
       result["name"] = elementName;
       result["path"] = elementPath;
       this.fileNames.push(elementName);
+      this.filePaths.push(elementPath.substring(elementPath.indexOf(this.directory)));
     }
     return result;
   }
 
   uploadDirectoryContent(directoryTree) {
-    this.uploadTreeNode([directoryTree]);
+    this.saveProjectStructure(directoryTree)
+      .then(_ => this.uploadTreeNode([directoryTree]))
+      .catch(error => console.log(error));
   }
 
   uploadTreeNode(element) {
@@ -154,15 +166,38 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
+  buildRelativeTree(directoryTree: any, rootDirectory: string): any {
+    if (directoryTree.path) {
+      directoryTree.path = directoryTree.path.substring(directoryTree.path.indexOf(rootDirectory));
+      return directoryTree;
+    } else {
+      directoryTree.children.forEach((child: any) => this.buildRelativeTree(child, rootDirectory));
+      return directoryTree;
+    }
+  }
+
+  saveProjectStructure(directoryTree: any): Promise<DocumentReference<IProject>> {
+    const relativeDirectoryTree = this.buildRelativeTree(directoryTree, this.directory);
+
+    const project: IProject = {
+      name: directoryTree.name,
+      creationDate: new Date(),
+      filePaths: this.filePaths,
+      directoryTree: relativeDirectoryTree
+    }
+
+    return this.projectsCollection.add(project);
+  }
+
   ngOnDestroy() {
     if (this.getUploadPercentageSub.length > 0) {
-      for(let i=0; i<this.getUploadPercentageSub.length; i++) {
+      for (let i = 0; i < this.getUploadPercentageSub.length; i++) {
         this.getUploadPercentageSub[i].unsubscribe();
       }
     }
 
     if (this.getUploadStatusSub.length > 0) {
-      for(let i=0; i<this.getUploadStatusSub.length; i++) {
+      for (let i = 0; i < this.getUploadStatusSub.length; i++) {
         this.getUploadStatusSub[i].unsubscribe();
       }
     }

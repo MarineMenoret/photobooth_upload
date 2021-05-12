@@ -1,7 +1,7 @@
 :host {
   .mat-card {
       max-width: 50%;
-      margin: 0 auto;
+      margin: 30px auto;
   }
 
   .mat-card-title {
@@ -47,6 +47,18 @@
 
   .uploadCanceled{
     color: red;
+  }
+
+  .downloadProgress {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    height: fit-content;
+  }
+
+  .downloadProgress mat-progress-bar {
+    margin-left: 4px;
   }
 }
 
