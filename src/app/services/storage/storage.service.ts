@@ -13,7 +13,8 @@ import { IProject } from "../../shared/interfaces/project";
 export class StorageService {
   projectsCollection: AngularFirestoreCollection<IProject>;
   subscriptions: Array<Subscription>;
-  filePaths: Subject<Array<string>>;
+  filePaths: Array<string>;
+  filePathsNotification: Subject<Array<string>>;
   fileNames: Array<string>;
   fileNamesNotification: Subject<Array<string>>;
   filesDownloadProgress: Array<number>;
@@ -28,16 +29,18 @@ export class StorageService {
   ) {
     this.projectsCollection = this.afs.collection<IProject>('projects');
     this.subscriptions = new Array<Subscription>();
-    this.filePaths = new Subject<Array<string>>();
+    this.filePaths = new Array<string>();
+    this.filePathsNotification = new Subject<Array<string>>();
     this.fileNames = new Array<string>();
     this.fileNamesNotification = new Subject<Array<string>>();
     this.filesDownloadProgress = new Array<number>();
     this.downloadProgressNotification = new Subject<Array<number>>();
     this.projectDownloadIsSuccessful = new Subject<boolean>();
 
-    const filePathsSubscription = this.filePaths.subscribe((path) => {
-      if (path) {
-        this.getFileNames(path);
+    const filePathsSubscription = this.filePathsNotification.subscribe((paths) => {
+      if (paths) {
+        this.filePaths = paths;
+        this.getFileNames(paths);
       }
     });
 
@@ -60,6 +63,7 @@ export class StorageService {
   }
 
   downloadProject(folder: Reference, path: string): void {
+    this.filePaths.length = 0;
     this.fileNames.length = 0;
     this.filesDownloadProgress.length = 0;
 
@@ -72,16 +76,19 @@ export class StorageService {
       }
     });
 
-    this.getFilePaths(folder, path);
+    this.getFilePaths(folder);
   }
 
   getFiles(folder: Reference, path: string): void {
     folder.listAll()
       .then((result) => {
         result.items.forEach((item) => {
-          const filePath = this.electronService.path.join(path, item.name);
+          const filePath = this.electronService.path.join(
+            path,
+            this.filePaths.find(filePath => filePath.includes(item.name))
+          );
           item.getDownloadURL()
-            .then(url => this.downloadFile(url, filePath))
+            .then(url => this.downloadFile(url, filePath, item.name))
             .catch(error => console.log(error))
         })
 
@@ -92,14 +99,14 @@ export class StorageService {
       .catch(error => console.log(error));
   }
 
-  getFilePaths(folder: Reference, path: string): void {
+  getFilePaths(folder: Reference): void {
     this.projectsCollection.ref.where('name', '==', folder.name)
       .get()
       .then((querySnapshot) => {
         if (querySnapshot.empty) {
           console.log("Project structure not found!")
         } else {
-          this.filePaths.next(querySnapshot.docs[0].data().filePaths)
+          this.filePathsNotification.next(querySnapshot.docs[0].data().filePaths)
         }
       })
       .catch((error) => {
@@ -117,7 +124,14 @@ export class StorageService {
     this.fileNamesNotification.next(fileNames);
   }
 
-  downloadFile(file_url: string, path: string): void {
+  downloadFile(file_url: string, path: string, fileName: string): void {
+
+    const directory = path.substring(0, path.indexOf(fileName) - 1);
+
+    if (!this.electronService.fs.existsSync(directory)) {
+      this.electronService.fs.mkdirSync(directory, { recursive: true });
+    }
+
     let received_bytes = 0;
     let total_bytes = 0;
 
