@@ -1,16 +1,19 @@
 import { Injectable } from "@angular/core";
+import { AngularFirestore, AngularFirestoreCollection } from "@angular/fire/firestore";
 import { AngularFireStorage } from "@angular/fire/storage";
 import { ListResult, Reference } from "@angular/fire/storage/interfaces";
 import { Observable, Subject, Subscription } from "rxjs";
 import { AppConfig } from "../../../environments/environment";
 import { ElectronService } from "../../core/services/electron/electron.service";
+import { IProject } from "../../shared/interfaces/project";
 
 @Injectable({
   providedIn: "root",
 })
 export class StorageService {
+  projectsCollection: AngularFirestoreCollection<IProject>;
   subscriptions: Array<Subscription>;
-  filePaths: Subject<string>;
+  filePaths: Subject<Array<string>>;
   fileNames: Array<string>;
   fileNamesNotification: Subject<Array<string>>;
   filesDownloadProgress: Array<number>;
@@ -18,9 +21,14 @@ export class StorageService {
   projectDownloadIsSuccessful: Subject<boolean>;
 
 
-  constructor(private storage: AngularFireStorage, private electronService: ElectronService) {
+  constructor(
+    private storage: AngularFireStorage,
+    private electronService: ElectronService,
+    private afs: AngularFirestore
+  ) {
+    this.projectsCollection = this.afs.collection<IProject>('projects');
     this.subscriptions = new Array<Subscription>();
-    this.filePaths = new Subject<string>();
+    this.filePaths = new Subject<Array<string>>();
     this.fileNames = new Array<string>();
     this.fileNamesNotification = new Subject<Array<string>>();
     this.filesDownloadProgress = new Array<number>();
@@ -55,8 +63,6 @@ export class StorageService {
     this.fileNames.length = 0;
     this.filesDownloadProgress.length = 0;
 
-    this.getFilePaths(folder, path);
-
     const fileNamesSubscription = this.fileNamesNotification.subscribe((files) => {
       if (files.length > 0) {
         this.fileNames = files;
@@ -65,18 +71,18 @@ export class StorageService {
         fileNamesSubscription.unsubscribe();
       }
     });
+
+    this.getFilePaths(folder, path);
   }
 
   getFiles(folder: Reference, path: string): void {
     folder.listAll()
       .then((result) => {
         result.items.forEach((item) => {
-          if (item.name != 'file_paths.txt') {
-            const filePath = this.electronService.path.join(path, item.name);
-            item.getDownloadURL()
-              .then(url => this.downloadFile(url, filePath, true))
-              .catch(error => console.log(error))
-          }
+          const filePath = this.electronService.path.join(path, item.name);
+          item.getDownloadURL()
+            .then(url => this.downloadFile(url, filePath))
+            .catch(error => console.log(error))
         })
 
         result.prefixes.forEach((prefixe) => {
@@ -87,33 +93,31 @@ export class StorageService {
   }
 
   getFilePaths(folder: Reference, path: string): void {
-    const filePath = this.electronService.path.join(path, 'file_paths.txt');
-    folder.child('file_paths.txt').getDownloadURL()
-      .then(url => this.downloadFile(url, filePath, false))
-      .catch(error => console.log(error));
+    this.projectsCollection.ref.where('name', '==', folder.name)
+      .get()
+      .then((querySnapshot) => {
+        if (querySnapshot.empty) {
+          console.log("Project structure not found!")
+        } else {
+          this.filePaths.next(querySnapshot.docs[0].data().filePaths)
+        }
+      })
+      .catch((error) => {
+        console.log("Error getting documents: ", error);
+      });
   }
 
-  getFileNames(path: string): void {
-    this.electronService.fs.readFile(path, (error, data) => {
-      if (error) {
-        console.log(error)
-      } else {
-        const paths = data.toString('utf-8').split('\n');
+  getFileNames(paths: Array<string>): void {
+    let fileNames = new Array<string>();
 
-        const fileNames = Array<string>();
+    paths.forEach((path) => {
+      fileNames.push(path.split('/').pop());
+    });
 
-        paths.forEach((path) => {
-          if (path) {
-            fileNames.push(path.split('/').pop());
-          }
-        });
-
-        this.fileNamesNotification.next(fileNames);
-      }
-    })
+    this.fileNamesNotification.next(fileNames);
   }
 
-  downloadFile(file_url: string, path: string, downloadProjectFiles: boolean): void {
+  downloadFile(file_url: string, path: string): void {
     let received_bytes = 0;
     let total_bytes = 0;
 
@@ -135,29 +139,23 @@ export class StorageService {
       received_bytes += chunk.length;
       console.log((received_bytes * 100) / total_bytes + "% | " + received_bytes + " bytes out of " + total_bytes + " bytes.");
 
-      if (downloadProjectFiles) {
-        this.filesDownloadProgress[fileIndex] = (received_bytes * 100) / total_bytes;
-        this.downloadProgressNotification.next(this.filesDownloadProgress);
-      }
+      this.filesDownloadProgress[fileIndex] = (received_bytes * 100) / total_bytes;
+      this.downloadProgressNotification.next(this.filesDownloadProgress);
+
     });
 
     req.on('end', () => {
       console.log("File succesfully downloaded");
 
-      if (downloadProjectFiles) {
-        let isCompleted = true;
+      let isCompleted = true;
 
-        this.filesDownloadProgress.forEach((pourcentage) => {
-          if (pourcentage != 100) {
-            isCompleted = false;
-          }
-        });
+      this.filesDownloadProgress.forEach((pourcentage) => {
+        if (pourcentage != 100) {
+          isCompleted = false;
+        }
+      });
 
-        this.projectDownloadIsSuccessful.next(isCompleted);
-
-      } else {
-        this.filePaths.next(path);
-      }
+      this.projectDownloadIsSuccessful.next(isCompleted);
     });
   }
 
