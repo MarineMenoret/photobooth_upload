@@ -1,8 +1,10 @@
 import { Injectable, OnDestroy } from '@angular/core';
+import { AngularFirestore, AngularFirestoreCollection, DocumentReference } from '@angular/fire/firestore';
 import { Subject, Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { ElectronService } from '../../core/services/electron/electron.service';
 import { StorageService } from '../../services/storage/storage.service';
+import { IProject } from '../../shared/interfaces/project';
 
 @Injectable({
   providedIn: 'root'
@@ -25,15 +27,16 @@ export class DirectoryTreeService implements OnDestroy {
   uploadFinalized$: Subject<boolean> = new Subject();
   uploadStatusMsg$: Subject<string> = new Subject();;
   uploadCanceled: boolean;
-  isReadyToUpload: Subject<boolean>;
-  downloadSubscriptions: Array<Subscription>;
+  projectsCollection: AngularFirestoreCollection<IProject>;
 
   constructor(
     private electronService: ElectronService,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private afs: AngularFirestore
   ) {
     this.fs = this.electronService.fs;
     this.path = this.electronService.path;
+    this.projectsCollection = this.afs.collection<IProject>('projects');
     this.initialize();
   }
 
@@ -51,8 +54,6 @@ export class DirectoryTreeService implements OnDestroy {
     this.uploadFinalized$.next(false);
     this.uploadStatusMsg$.next('');
     this.uploadCanceled = false;
-    this.isReadyToUpload = new Subject<boolean>();
-    this.downloadSubscriptions = new Array<Subscription>();
   }
 
   setDirectoryPath(directoryPath) {
@@ -92,13 +93,9 @@ export class DirectoryTreeService implements OnDestroy {
   }
 
   uploadDirectoryContent(directoryTree) {
-    const isReadyToUploadSubscription = this.isReadyToUpload.subscribe((isReady) => {
-      if (isReady) {
-        this.uploadTreeNode([directoryTree]);
-      }
-    });
-    this.uploadFilePaths();
-    this.downloadSubscriptions.push(isReadyToUploadSubscription);
+    this.saveProjectStructure(directoryTree)
+      .then(_ => this.uploadTreeNode([directoryTree]))
+      .catch(error => console.log(error));
   }
 
   uploadTreeNode(element) {
@@ -169,33 +166,27 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
-  saveFilePaths(directory: string): void {
-    const path = this.path.join(directory, 'file_paths.txt');
-    const stream = this.electronService.fs.createWriteStream(path, { flags: 'a' });
-    this.filePaths.forEach(filePath => { stream.write(filePath.concat('\n')) });
-    stream.end();
+  buildRelativeTree(directoryTree: any, rootDirectory: string): any {
+    if (directoryTree.path) {
+      directoryTree.path = directoryTree.path.substring(directoryTree.path.indexOf(rootDirectory));
+      return directoryTree;
+    } else {
+      directoryTree.children.forEach((child: any) => this.buildRelativeTree(child, rootDirectory));
+      return directoryTree;
+    }
   }
 
-  uploadFilePaths(): void {
-    const path = this.path.join(this.directoryPath, 'file_paths.txt');
-    const file = this.fs.readFileSync(path);
-    const relativePath = path.substring(path.indexOf(this.directory));
+  saveProjectStructure(directoryTree: any): Promise<DocumentReference<IProject>> {
+    const relativeDirectoryTree = this.buildRelativeTree(directoryTree, this.directory);
 
-    let task = this.storageService.uploadFile(relativePath, file, 'txt');
-    this.uploadTasks.push(task);
+    const project: IProject = {
+      name: directoryTree.name,
+      creationDate: new Date(),
+      filePaths: this.filePaths,
+      directoryTree: relativeDirectoryTree
+    }
 
-    const snapshotChangesSubsription = task.snapshotChanges().subscribe(
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log('Upload is ' + progress + '% done');
-      },
-      (error) => { console.log(error) },
-      () => {
-        this.isReadyToUpload.next(true);
-        console.log('File paths successfully uploaded.');
-      }
-    );
-    this.downloadSubscriptions.push(snapshotChangesSubsription);
+    return this.projectsCollection.add(project);
   }
 
   ngOnDestroy() {
@@ -210,7 +201,5 @@ export class DirectoryTreeService implements OnDestroy {
         this.getUploadStatusSub[i].unsubscribe();
       }
     }
-
-    this.downloadSubscriptions.forEach(subscription => subscription.unsubscribe);
   }
 }

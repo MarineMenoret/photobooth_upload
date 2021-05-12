@@ -111,7 +111,6 @@ export class HomeComponent implements OnInit, OnDestroy {
             directoryPath
           );
           this.fileNames = this.directoryTreeService.getFileNames();
-          this.directoryTreeService.saveFilePaths(directoryPath);
           console.log("directoryTree :", this.directoryTree);
         }
       });
