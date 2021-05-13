@@ -7,6 +7,7 @@ import { StorageService } from "../../services/storage/storage.service";
 import { MatSelectionListChange } from "@angular/material/list";
 import { Reference } from "@angular/fire/storage/interfaces";
 import { Dialog } from "electron";
+import { IDirectoryTree } from "../../shared/interfaces/directory-tree";
 
 @Component({
   selector: "app-home",
@@ -18,7 +19,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   fs: any;
   path: any;
   dialog: Dialog;
-  directoryTree: Object;
+  directoryTree: IDirectoryTree;
   fileNames: Array<any>;
   uploadPercentage: Object;
   uploadFinalized: boolean;

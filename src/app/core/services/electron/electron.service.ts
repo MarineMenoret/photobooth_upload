@@ -5,7 +5,7 @@ import { Injectable } from '@angular/core';
 import { IpcRenderer, Remote, WebFrame } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as request from 'request'
+import * as request from 'request';
 import { ChildProcess } from 'node:child_process';
 
 @Injectable({

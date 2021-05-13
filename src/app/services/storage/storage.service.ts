@@ -106,7 +106,9 @@ export class StorageService {
         if (querySnapshot.empty) {
           console.log("Project structure not found!")
         } else {
-          this.filePathsNotification.next(querySnapshot.docs[0].data().filePaths)
+          const paths = Array<string>();
+          querySnapshot.docs[0].data().files.forEach(file => paths.push(file.path));
+          this.filePathsNotification.next(paths);
         }
       })
       .catch((error) => {
@@ -164,7 +166,6 @@ export class StorageService {
       if (this.filesDownloadProgress.every(pourcentage => pourcentage == 100)) {
         this.projectDownloadIsSuccessful.next(true);
       }
-
     });
   }
 

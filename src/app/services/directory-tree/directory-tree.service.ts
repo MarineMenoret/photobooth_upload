@@ -4,21 +4,26 @@ import { Subject, Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { ElectronService } from '../../core/services/electron/electron.service';
 import { StorageService } from '../../services/storage/storage.service';
+import { IDirectoryTree } from '../../shared/interfaces/directory-tree';
 import { IProject } from '../../shared/interfaces/project';
+import * as fs from 'fs';
+import * as path from 'path';
+import { IFile } from '../../shared/interfaces/file';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DirectoryTreeService implements OnDestroy {
 
-  fs: any;
-  path: any;
+  fs: typeof fs;
+  path: typeof path;
   directoryPath: string;
   directory: string;
   fileNames: Array<string>;
   filePaths: Array<string>;
+  fileSizes: Array<number>;
   fileNames$: Subject<Array<string>>;
-  directoryTree: Object;
+  directoryTree: IDirectoryTree;
   numberOfFilesUploaded: number;
   uploadTasks: Array<any>;;
   uploadPercentage: Object;
@@ -44,8 +49,9 @@ export class DirectoryTreeService implements OnDestroy {
     this.directory = '';
     this.fileNames = [];
     this.filePaths = [];
+    this.fileSizes = [];
     this.fileNames$ = new Subject();
-    this.directoryTree = {};
+    this.directoryTree = {} as IDirectoryTree;
     this.numberOfFilesUploaded = 0;
     this.uploadTasks = [];
     this.uploadPercentage = {};
@@ -56,7 +62,7 @@ export class DirectoryTreeService implements OnDestroy {
     this.uploadCanceled = false;
   }
 
-  setDirectoryPath(directoryPath) {
+  setDirectoryPath(directoryPath: string): IDirectoryTree {
     this.directoryPath = directoryPath;
     this.directory = directoryPath.split('/').pop();
     this.directoryTree = this.buildTree(directoryPath);
@@ -64,12 +70,12 @@ export class DirectoryTreeService implements OnDestroy {
     return this.directoryTree
   }
 
-  getFileNames() {
+  getFileNames(): Array<string> {
     return this.fileNames;
   }
 
-  buildTree(elementPath) {
-    let result = {};
+  buildTree(elementPath: string): IDirectoryTree {
+    let result = {} as IDirectoryTree;
     let elementName = elementPath.split("/").pop();
 
     if (this.fs.lstatSync(elementPath).isDirectory()) {
@@ -88,17 +94,18 @@ export class DirectoryTreeService implements OnDestroy {
       result["path"] = elementPath;
       this.fileNames.push(elementName);
       this.filePaths.push(elementPath.substring(elementPath.indexOf(this.directory)));
+      this.fileSizes.push(this.fs.statSync(elementPath).size);
     }
     return result;
   }
 
-  uploadDirectoryContent(directoryTree) {
+  uploadDirectoryContent(directoryTree: IDirectoryTree): void {
     this.saveProjectStructure(directoryTree)
       .then(_ => this.uploadTreeNode([directoryTree]))
       .catch(error => console.log(error));
   }
 
-  uploadTreeNode(element) {
+  uploadTreeNode(element: Array<IDirectoryTree>): void {
     for (let i = 0; i < element.length; i++) {
       if (element[i].path) {
         this.uploadFile(element[i].path);
@@ -110,7 +117,7 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
-  uploadFile(path) {
+  uploadFile(path: string): void {
     const file = this.fs.readFileSync(path);
     const fileName = path.split('/').pop();
     const fileExtension = path.split('.').pop()
@@ -145,7 +152,7 @@ export class DirectoryTreeService implements OnDestroy {
     )
   }
 
-  cancelUpload() {
+  cancelUpload(): boolean {
     for (let i = 0; i < this.uploadTasks.length; i++) {
       //if !complete :
       this.uploadTasks[i].cancel();
@@ -166,27 +173,37 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
-  buildRelativeTree(directoryTree: any, rootDirectory: string): any {
+  buildRelativeTree(directoryTree: IDirectoryTree, rootDirectory: string): IDirectoryTree {
     if (directoryTree.path) {
       directoryTree.path = directoryTree.path.substring(directoryTree.path.indexOf(rootDirectory));
       return directoryTree;
     } else {
-      directoryTree.children.forEach((child: any) => this.buildRelativeTree(child, rootDirectory));
+      directoryTree.children.forEach((child: IDirectoryTree) => this.buildRelativeTree(child, rootDirectory));
       return directoryTree;
     }
   }
 
-  saveProjectStructure(directoryTree: any): Promise<DocumentReference<IProject>> {
+  saveProjectStructure(directoryTree: IDirectoryTree): Promise<DocumentReference<IProject>> {
     // Deep copy to prevent modification of the current directory tree.
     const directoryTreeClone = JSON.parse(JSON.stringify(directoryTree));
 
     const relativeDirectoryTree = this.buildRelativeTree(directoryTreeClone, this.directory);
 
+    const files = Array<IFile>();
+
+    this.fileNames.forEach((fileName, index) => {
+      files.push({
+        name: fileName,
+        path: this.filePaths[index],
+        size: this.fileSizes[index]
+      });
+    })
+
     const project: IProject = {
       name: directoryTree.name,
       creationDate: new Date(),
-      filePaths: this.filePaths,
-      directoryTree: relativeDirectoryTree
+      directoryTree: relativeDirectoryTree,
+      files: files
     }
 
     return this.projectsCollection.add(project);
