@@ -28,6 +28,7 @@ export class DirectoryTreeService implements OnDestroy {
   uploadStatusMsg$: Subject<string> = new Subject();;
   uploadCanceled: boolean;
   projectsCollection: AngularFirestoreCollection<IProject>;
+  relativePathRoot: string;
 
   constructor(
     private electronService: ElectronService,
@@ -58,7 +59,7 @@ export class DirectoryTreeService implements OnDestroy {
 
   setDirectoryPath(directoryPath) {
     this.directoryPath = directoryPath;
-    this.directory = directoryPath.split('/').pop();
+    this.directory = this.path.basename(directoryPath);
     this.directoryTree = this.buildTree(directoryPath);
     this.fileNames$.next(this.fileNames);
     return this.directoryTree
@@ -70,7 +71,7 @@ export class DirectoryTreeService implements OnDestroy {
 
   buildTree(elementPath) {
     let result = {};
-    let elementName = elementPath.split("/").pop();
+    let elementName = this.path.basename(elementPath);
 
     if (this.fs.lstatSync(elementPath).isDirectory()) {
       let childElements = this.fs.readdirSync(elementPath);
@@ -110,11 +111,21 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
+  findRelativePath(absolutePath: string) {
+    let pathArray = absolutePath.split(this.path.sep);
+    let relativePath2 = this.directory; 
+    for(let i = pathArray.indexOf(this.directory) + 1; i < pathArray.length; i++){
+      relativePath2 += '/' + pathArray[i];
+    }
+    return relativePath2;
+  }
+
   uploadFile(path) {
     const file = this.fs.readFileSync(path);
-    const fileName = path.split('/').pop();
-    const fileExtension = path.split('.').pop()
-    const relativePath = path.substring(path.indexOf(this.directory));
+    const fileExtension = this.path.extname(path);
+    const fileName =  this.path.basename(path, fileExtension);
+    const absolutePath = path.substring(path.indexOf(this.directory));
+    const relativePath = this.findRelativePath(absolutePath);
 
     let task = this.storageService.uploadFile(relativePath, file, fileExtension);
     this.uploadTasks.push(task);
