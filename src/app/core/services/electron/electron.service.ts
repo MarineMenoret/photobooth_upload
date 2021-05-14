@@ -6,6 +6,7 @@ import { IpcRenderer, Remote, WebFrame } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as request from 'request';
+import * as crypto from 'node:crypto';
 import { ChildProcess } from 'node:child_process';
 
 @Injectable({
@@ -19,6 +20,7 @@ export class ElectronService {
   fs: typeof fs;
   path: typeof path;
   request: typeof request;
+  crypto: typeof crypto;
 
   get isElectron(): boolean {
     return !!(window && window.process && window.process.type);
@@ -38,6 +40,7 @@ export class ElectronService {
       this.fs = window.require('fs');
       this.path = window.require('path');
       this.request = window.require('request');
+      this.crypto = window.require('crypto');
     }
   }
 }

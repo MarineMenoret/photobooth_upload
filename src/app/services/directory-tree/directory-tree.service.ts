@@ -19,10 +19,7 @@ export class DirectoryTreeService implements OnDestroy {
   path: typeof path;
   directoryPath: string;
   directory: string;
-  fileNames: Array<string>;
-  filePaths: Array<string>;
-  fileSizes: Array<number>;
-  fileNames$: Subject<Array<string>>;
+  files: Array<IFile>;
   directoryTree: IDirectoryTree;
   numberOfFilesUploaded: number;
   uploadTasks: Array<any>;;
@@ -47,10 +44,7 @@ export class DirectoryTreeService implements OnDestroy {
 
   initialize() {
     this.directory = '';
-    this.fileNames = [];
-    this.filePaths = [];
-    this.fileSizes = [];
-    this.fileNames$ = new Subject();
+    this.files = new Array<IFile>();
     this.directoryTree = {} as IDirectoryTree;
     this.numberOfFilesUploaded = 0;
     this.uploadTasks = [];
@@ -66,12 +60,13 @@ export class DirectoryTreeService implements OnDestroy {
     this.directoryPath = directoryPath;
     this.directory = directoryPath.split('/').pop();
     this.directoryTree = this.buildTree(directoryPath);
-    this.fileNames$.next(this.fileNames);
     return this.directoryTree
   }
 
   getFileNames(): Array<string> {
-    return this.fileNames;
+    const fileNames = new Array<string>();
+    this.files.forEach(file => fileNames.push(file.name));
+    return fileNames;
   }
 
   buildTree(elementPath: string): IDirectoryTree {
@@ -92,9 +87,13 @@ export class DirectoryTreeService implements OnDestroy {
     } else {
       result["name"] = elementName;
       result["path"] = elementPath;
-      this.fileNames.push(elementName);
-      this.filePaths.push(elementPath.substring(elementPath.indexOf(this.directory)));
-      this.fileSizes.push(this.fs.statSync(elementPath).size);
+      const file: IFile = {
+        name: elementName,
+        path: elementPath.substring(elementPath.indexOf(this.directory)),
+        size: this.fs.statSync(elementPath).size,
+        sha256: this.hashfile(elementPath)
+      };
+      this.files.push(file);
     }
     return result;
   }
@@ -138,7 +137,7 @@ export class DirectoryTreeService implements OnDestroy {
       task.snapshotChanges().pipe(
         finalize(() => {
           this.numberOfFilesUploaded++;
-          if (this.numberOfFilesUploaded === this.fileNames.length) {
+          if (this.numberOfFilesUploaded === this.files.length) {
             this.uploadFinalized$.next(true);
             this.uploadStatusMsg$.next('Files successfully uploaded.');
             if (this.uploadCanceled) this.uploadStatusMsg$.next("Upload canceled.");
@@ -189,24 +188,21 @@ export class DirectoryTreeService implements OnDestroy {
 
     const relativeDirectoryTree = this.buildRelativeTree(directoryTreeClone, this.directory);
 
-    const files = Array<IFile>();
-
-    this.fileNames.forEach((fileName, index) => {
-      files.push({
-        name: fileName,
-        path: this.filePaths[index],
-        size: this.fileSizes[index]
-      });
-    })
-
     const project: IProject = {
       name: directoryTree.name,
       creationDate: new Date(),
       directoryTree: relativeDirectoryTree,
-      files: files
+      files: this.files
     }
 
     return this.projectsCollection.add(project);
+  }
+
+  hashfile(path: string): string {
+    const sha256Hash = this.electronService.crypto.createHash('sha256');
+    const file = this.electronService.fs.readFileSync(path);
+    const hash = sha256Hash.update(file).digest('hex');
+    return hash;
   }
 
   ngOnDestroy() {
