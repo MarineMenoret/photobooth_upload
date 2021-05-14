@@ -55,10 +55,21 @@
           <div mat-subheader>Files</div>
           <mat-list-item *ngFor="let file of filesToDownload; index as i">
             <div class="downloadProgress">
-              <mat-icon mat-list-icon>insert_drive_file</mat-icon>
-              <div mat-line>{{file}}</div>
+              <div class="file">
+                <mat-icon mat-list-icon>insert_drive_file</mat-icon>
+                <div mat-line>{{file}}</div>
+              </div>
+              <div class="downloadButtons">
+                <button mat-icon-button>
+                  <mat-icon>restart_alt</mat-icon>
+                </button>
+                <button mat-icon-button (click)="onDownloadCancel(i)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
               <mat-progress-bar mode="determinate" [value]="downloadPercentage[i]? downloadPercentage[i] : 0">
               </mat-progress-bar>
+              <mat-error *ngIf="filesCorruption[i]">Download error: corrupted file!</mat-error>
             </div>
           </mat-list-item>
         </mat-list>

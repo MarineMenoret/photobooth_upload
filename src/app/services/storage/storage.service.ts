@@ -6,6 +6,8 @@ import { Observable, Subject, Subscription } from "rxjs";
 import { AppConfig } from "../../../environments/environment";
 import { ElectronService } from "../../core/services/electron/electron.service";
 import { IProject } from "../../shared/interfaces/project";
+import * as request from 'request';
+import { IFile } from "../../shared/interfaces/file";
 
 @Injectable({
   providedIn: "root",
@@ -13,14 +15,18 @@ import { IProject } from "../../shared/interfaces/project";
 export class StorageService {
   projectsCollection: AngularFirestoreCollection<IProject>;
   subscriptions: Array<Subscription>;
+  files: Array<IFile>;
   filePaths: Array<string>;
   filePathsNotification: Subject<Array<string>>;
   fileNames: Array<string>;
   fileNamesNotification: Subject<Array<string>>;
   filesDownloadProgress: Array<number>;
   downloadProgressNotification: Subject<Array<number>>;
+  filesDownloadRequest: Array<request.Request>;
+  filesDownloadRequestNotification: Subject<Array<request.Request>>;
+  filesCorruption: Array<boolean>;
+  filesCorruptionNotification: Subject<Array<boolean>>;
   projectDownloadIsSuccessful: Subject<boolean>;
-
 
   constructor(
     private storage: AngularFireStorage,
@@ -29,12 +35,17 @@ export class StorageService {
   ) {
     this.projectsCollection = this.afs.collection<IProject>('projects');
     this.subscriptions = new Array<Subscription>();
+    this.files = new Array<IFile>();
     this.filePaths = new Array<string>();
     this.filePathsNotification = new Subject<Array<string>>();
     this.fileNames = new Array<string>();
     this.fileNamesNotification = new Subject<Array<string>>();
     this.filesDownloadProgress = new Array<number>();
     this.downloadProgressNotification = new Subject<Array<number>>();
+    this.filesDownloadRequest = new Array<request.Request>();
+    this.filesDownloadRequestNotification = new Subject<Array<request.Request>>();
+    this.filesCorruption = new Array<boolean>();
+    this.filesCorruptionNotification = new Subject<Array<boolean>>();
     this.projectDownloadIsSuccessful = new Subject<boolean>();
 
     const filePathsSubscription = this.filePathsNotification.subscribe((paths) => {
@@ -63,14 +74,19 @@ export class StorageService {
   }
 
   downloadProject(folder: Reference, path: string): void {
+    this.files.length = 0;
     this.filePaths.length = 0;
     this.fileNames.length = 0;
     this.filesDownloadProgress.length = 0;
+    this.filesDownloadRequest.length = 0;
+    this.filesCorruption.length = 0;
 
     const fileNamesSubscription = this.fileNamesNotification.subscribe((files) => {
       if (files.length > 0) {
         this.fileNames = files;
         this.filesDownloadProgress = new Array<number>(files.length).fill(0);
+        this.filesDownloadRequest = new Array<request.Request>(files.length).fill(null);
+        this.filesCorruption = new Array<boolean>(files.length).fill(false);
         this.getFiles(folder, path);
         fileNamesSubscription.unsubscribe();
       }
@@ -106,8 +122,9 @@ export class StorageService {
         if (querySnapshot.empty) {
           console.log("Project structure not found!")
         } else {
+          this.files = querySnapshot.docs[0].data().files;
           const paths = Array<string>();
-          querySnapshot.docs[0].data().files.forEach(file => paths.push(file.path));
+          this.files.forEach(file => paths.push(file.path));
           this.filePathsNotification.next(paths);
         }
       })
@@ -127,17 +144,14 @@ export class StorageService {
   }
 
   downloadFile(file_url: string, path: string, fileName: string): void {
-
+    const fileIndex = this.fileNames.indexOf(fileName);
     const directory = path.substring(0, path.indexOf(fileName) - 1);
+    let received_bytes = 0;
+    let total_bytes = 0;
 
     if (!this.electronService.fs.existsSync(directory)) {
       this.electronService.fs.mkdirSync(directory, { recursive: true });
     }
-
-    let received_bytes = 0;
-    let total_bytes = 0;
-
-    const fileIndex = this.fileNames.indexOf(path.split('/').pop());
 
     let req = this.electronService.request({
       method: 'GET',
@@ -149,6 +163,8 @@ export class StorageService {
 
     req.on('response', (data) => {
       total_bytes = parseInt(data.headers['content-length']);
+      this.filesDownloadRequest[fileIndex] = req;
+      this.filesDownloadRequestNotification.next(this.filesDownloadRequest);
     });
 
     req.on('data', (chunk) => {
@@ -157,16 +173,25 @@ export class StorageService {
 
       this.filesDownloadProgress[fileIndex] = (received_bytes * 100) / total_bytes;
       this.downloadProgressNotification.next(this.filesDownloadProgress);
-
     });
 
     req.on('end', () => {
       console.log("File succesfully downloaded");
+      this.filesCorruption[fileIndex] = this.checkFileIntegrity(path, fileName);
+      this.filesCorruptionNotification.next(this.filesCorruption);
 
       if (this.filesDownloadProgress.every(pourcentage => pourcentage == 100)) {
         this.projectDownloadIsSuccessful.next(true);
       }
     });
+  }
+
+  checkFileIntegrity(path: string, fileName: string): boolean {
+    const sha256Hash = this.electronService.crypto.createHash('sha256');
+    const file = this.electronService.fs.readFileSync(path);
+    const hash = sha256Hash.update(file).digest('hex');
+    const isCorrupted = this.files.find(file => file.name == fileName)?.sha256 != hash;
+    return isCorrupted;
   }
 
   ngOnDestroy() {
