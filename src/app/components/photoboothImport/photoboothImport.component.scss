@@ -1,0 +1,19 @@
+:host {
+  .mat-card {
+    max-width: 75%;
+    margin: 100px auto;
+  }
+
+  table {
+    margin: 20px auto;
+    width: 75%;
+  }
+
+  .actionsBtn {
+    color: #1C83E9;
+  }
+}
+
+//couleur des raised button :
+// ::ng-deep 
+

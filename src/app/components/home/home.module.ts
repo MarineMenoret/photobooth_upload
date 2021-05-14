@@ -9,6 +9,7 @@ import { HomeComponent } from './home.component';
 import { SharedModule } from '../../shared/shared.module';
 
 import { HeaderModule } from '../header/header.module'
+import { PhotoboothImportModule } from '../photoboothImport/photoboothImport.module'
 
 import { AppConfig } from '../../../environments/environment';
 import { NgxAuthFirebaseUIModule } from 'ngx-auth-firebaseui';
@@ -20,6 +21,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
   imports: [
     MaterialModule,
     HeaderModule,
+    PhotoboothImportModule,
     CommonModule, 
     SharedModule, 
     HomeRoutingModule,  

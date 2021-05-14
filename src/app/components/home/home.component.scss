@@ -1,7 +1,7 @@
 :host {
   .mat-card {
       max-width: 50%;
-      margin: 30px auto;
+      margin: 100px auto;
   }
 
   .mat-card-title {
@@ -109,6 +109,11 @@
 //couleur du texte des boutons des snackbar:
 ::ng-deep .mat-simple-snackbar-action {
   color: #1C83E9 !important;
+}
+
+//couleur de la ligne indiquant la tab active :
+::ng-deep .mat-tab-group.mat-primary .mat-ink-bar {
+  background-color: #1C83E9 !important;
 }
 
 
