@@ -16,6 +16,7 @@ export class DirectoryTreeService implements OnDestroy {
   directoryPath: string;
   directory: string;
   fileNames: Array<string>;
+  fileExtensions: Array<string>;
   filePaths: Array<string>;
   fileNames$: Subject<Array<string>>;
   directoryTree: Object;
@@ -28,7 +29,6 @@ export class DirectoryTreeService implements OnDestroy {
   uploadStatusMsg$: Subject<string> = new Subject();;
   uploadCanceled: boolean;
   projectsCollection: AngularFirestoreCollection<IProject>;
-  relativePathRoot: string;
 
   constructor(
     private electronService: ElectronService,
@@ -44,6 +44,7 @@ export class DirectoryTreeService implements OnDestroy {
   initialize() {
     this.directory = '';
     this.fileNames = [];
+    this.fileExtensions = [];
     this.filePaths = [];
     this.fileNames$ = new Subject();
     this.directoryTree = {};
@@ -69,9 +70,14 @@ export class DirectoryTreeService implements OnDestroy {
     return this.fileNames;
   }
 
+  getFileExtensions() {
+    return this.fileExtensions;
+  }
+
   buildTree(elementPath) {
     let result = {};
-    let elementName = this.path.basename(elementPath);
+    const fileExtention = this.path.extname(elementPath);
+    let elementName = this.path.basename(elementPath, fileExtention);
 
     if (this.fs.lstatSync(elementPath).isDirectory()) {
       let childElements = this.fs.readdirSync(elementPath);
@@ -88,6 +94,7 @@ export class DirectoryTreeService implements OnDestroy {
       result["name"] = elementName;
       result["path"] = elementPath;
       this.fileNames.push(elementName);
+      this.fileExtensions.push(fileExtention);
       this.filePaths.push(elementPath.substring(elementPath.indexOf(this.directory)));
     }
     return result;
