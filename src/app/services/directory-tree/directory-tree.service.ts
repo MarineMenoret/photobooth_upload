@@ -16,6 +16,7 @@ export class DirectoryTreeService implements OnDestroy {
   directoryPath: string;
   directory: string;
   fileNames: Array<string>;
+  fileExtensions: Array<string>;
   filePaths: Array<string>;
   fileNames$: Subject<Array<string>>;
   directoryTree: Object;
@@ -43,6 +44,7 @@ export class DirectoryTreeService implements OnDestroy {
   initialize() {
     this.directory = '';
     this.fileNames = [];
+    this.fileExtensions = [];
     this.filePaths = [];
     this.fileNames$ = new Subject();
     this.directoryTree = {};
@@ -58,7 +60,7 @@ export class DirectoryTreeService implements OnDestroy {
 
   setDirectoryPath(directoryPath) {
     this.directoryPath = directoryPath;
-    this.directory = directoryPath.split('/').pop();
+    this.directory = this.path.basename(directoryPath);
     this.directoryTree = this.buildTree(directoryPath);
     this.fileNames$.next(this.fileNames);
     return this.directoryTree
@@ -68,9 +70,14 @@ export class DirectoryTreeService implements OnDestroy {
     return this.fileNames;
   }
 
+  getFileExtensions() {
+    return this.fileExtensions;
+  }
+
   buildTree(elementPath) {
     let result = {};
-    let elementName = elementPath.split("/").pop();
+    const fileExtention = this.path.extname(elementPath);
+    let elementName = this.path.basename(elementPath, fileExtention);
 
     if (this.fs.lstatSync(elementPath).isDirectory()) {
       let childElements = this.fs.readdirSync(elementPath);
@@ -87,6 +94,7 @@ export class DirectoryTreeService implements OnDestroy {
       result["name"] = elementName;
       result["path"] = elementPath;
       this.fileNames.push(elementName);
+      this.fileExtensions.push(fileExtention);
       this.filePaths.push(elementPath.substring(elementPath.indexOf(this.directory)));
     }
     return result;
@@ -110,11 +118,21 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
+  findRelativePath(absolutePath: string) {
+    let pathArray = absolutePath.split(this.path.sep);
+    let relativePath2 = this.directory; 
+    for(let i = pathArray.indexOf(this.directory) + 1; i < pathArray.length; i++){
+      relativePath2 += '/' + pathArray[i];
+    }
+    return relativePath2;
+  }
+
   uploadFile(path) {
     const file = this.fs.readFileSync(path);
-    const fileName = path.split('/').pop();
-    const fileExtension = path.split('.').pop()
-    const relativePath = path.substring(path.indexOf(this.directory));
+    const fileExtension = this.path.extname(path);
+    const fileName =  this.path.basename(path, fileExtension);
+    const absolutePath = path.substring(path.indexOf(this.directory));
+    const relativePath = this.findRelativePath(absolutePath);
 
     let task = this.storageService.uploadFile(relativePath, file, fileExtension);
     this.uploadTasks.push(task);
