@@ -22,6 +22,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   dialog: Dialog;
   directoryTree: IDirectoryTree;
   fileNames: Array<any>;
+  fileExtensions: Array<any>;
   uploadPercentage: Object;
   uploadFinalized: boolean;
   uploadStatusMsg: string;
@@ -63,6 +64,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   initialize() {
     this.fileNames = [];
+    this.fileExtensions = [];
     this.uploadPercentage = {};
     this.uploadFinalized = false;
     this.uploadCanceled = false;
@@ -120,13 +122,14 @@ export class HomeComponent implements OnInit, OnDestroy {
         buttonLabel: "Select",
         properties: ["openDirectory"],
       })
-      .then((directory) => {
+      .then(async (directory) => {
         if (!directory.canceled) {
           let directoryPath = directory.filePaths[0];
-          this.directoryTree = this.directoryTreeService.setDirectoryPath(
+          this.directoryTree = await this.directoryTreeService.setDirectoryPath(
             directoryPath
           );
           this.fileNames = this.directoryTreeService.getFileNames();
+          this.fileExtensions = this.directoryTreeService.getFileExtensions();
           console.log("directoryTree :", this.directoryTree);
         }
       });
