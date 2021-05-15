@@ -177,8 +177,13 @@ export class StorageService {
 
     req.on('end', () => {
       console.log("File succesfully downloaded");
-      this.filesCorruption[fileIndex] = this.checkFileIntegrity(path, fileName);
-      this.filesCorruptionNotification.next(this.filesCorruption);
+      
+      this.checkFileIntegrity(path, fileName)
+        .then((isCorrupted) => {
+          this.filesCorruption[fileIndex] = isCorrupted;
+          this.filesCorruptionNotification.next(this.filesCorruption);
+        })
+        .catch(error => console.log(error));
 
       if (this.filesDownloadProgress.every(pourcentage => pourcentage == 100)) {
         this.projectDownloadIsSuccessful.next(true);
@@ -186,12 +191,27 @@ export class StorageService {
     });
   }
 
-  checkFileIntegrity(path: string, fileName: string): boolean {
-    const sha256Hash = this.electronService.crypto.createHash('sha256');
-    const file = this.electronService.fs.readFileSync(path);
-    const hash = sha256Hash.update(file).digest('hex');
-    const isCorrupted = this.files.find(file => file.name == fileName)?.sha256 != hash;
-    return isCorrupted;
+  checkFileIntegrity(path: string, fileName: string): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      this.hashfile(path)
+        .then((hash) => {
+          const fileNameWithoutExtension = this.electronService.path.basename(fileName, this.electronService.path.extname(fileName));
+          const isCorrupted = this.files.find(file => file.name == fileNameWithoutExtension)?.sha256 != hash;
+          resolve(isCorrupted);
+        })
+        .catch(error => reject(error));
+    });
+  }
+
+  hashfile(path: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const sha256Hash = this.electronService.crypto.createHash('sha256');
+      const stream = this.electronService.fs.createReadStream(path);
+
+      stream.on('data', (data) => { sha256Hash.update(data); });
+      stream.on('end', () => { resolve(sha256Hash.digest('hex')); });
+      stream.on('error', (error) => { reject(error); })
+    })
   }
 
   ngOnDestroy() {

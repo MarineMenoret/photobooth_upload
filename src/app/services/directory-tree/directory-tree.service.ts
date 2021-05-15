@@ -20,6 +20,7 @@ export class DirectoryTreeService implements OnDestroy {
   directoryPath: string;
   directory: string;
   files: Array<IFile>;
+  fileExtensions: Array<string>;
   directoryTree: IDirectoryTree;
   numberOfFilesUploaded: number;
   uploadTasks: Array<any>;;
@@ -45,6 +46,7 @@ export class DirectoryTreeService implements OnDestroy {
   initialize() {
     this.directory = '';
     this.files = new Array<IFile>();
+    this.fileExtensions = [];
     this.directoryTree = {} as IDirectoryTree;
     this.numberOfFilesUploaded = 0;
     this.uploadTasks = [];
@@ -56,10 +58,10 @@ export class DirectoryTreeService implements OnDestroy {
     this.uploadCanceled = false;
   }
 
-  setDirectoryPath(directoryPath: string): IDirectoryTree {
+  async setDirectoryPath(directoryPath: string): Promise<IDirectoryTree> {
     this.directoryPath = directoryPath;
-    this.directory = directoryPath.split('/').pop();
-    this.directoryTree = this.buildTree(directoryPath);
+    this.directory = this.path.basename(directoryPath);
+    this.directoryTree = await this.buildTree(directoryPath);
     return this.directoryTree
   }
 
@@ -69,16 +71,21 @@ export class DirectoryTreeService implements OnDestroy {
     return fileNames;
   }
 
-  buildTree(elementPath: string): IDirectoryTree {
+  getFileExtensions() {
+    return this.fileExtensions;
+  }
+
+  async buildTree(elementPath: string): Promise<IDirectoryTree> {
     let result = {} as IDirectoryTree;
-    let elementName = elementPath.split("/").pop();
+    const fileExtention = this.path.extname(elementPath);
+    let elementName = this.path.basename(elementPath, fileExtention);
 
     if (this.fs.lstatSync(elementPath).isDirectory()) {
       let childElements = this.fs.readdirSync(elementPath);
       result["name"] = elementName;
       for (let i = 0; i < childElements.length; i++) {
         let childElementPath = this.path.join(elementPath, childElements[i]);
-        let childResult = this.buildTree(childElementPath);
+        let childResult = await this.buildTree(childElementPath);
         if (!result["children"]) {
           result["children"] = [];
         }
@@ -87,13 +94,15 @@ export class DirectoryTreeService implements OnDestroy {
     } else {
       result["name"] = elementName;
       result["path"] = elementPath;
+
       const file: IFile = {
         name: elementName,
         path: elementPath.substring(elementPath.indexOf(this.directory)),
         size: this.fs.statSync(elementPath).size,
-        sha256: this.hashfile(elementPath)
+        sha256: await this.hashfile(elementPath)
       };
       this.files.push(file);
+      this.fileExtensions.push(fileExtention);
     }
     return result;
   }
@@ -116,11 +125,21 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
+  findRelativePath(absolutePath: string) {
+    let pathArray = absolutePath.split(this.path.sep);
+    let relativePath2 = this.directory;
+    for (let i = pathArray.indexOf(this.directory) + 1; i < pathArray.length; i++) {
+      relativePath2 += '/' + pathArray[i];
+    }
+    return relativePath2;
+  }
+
   uploadFile(path: string): void {
     const file = this.fs.readFileSync(path);
-    const fileName = path.split('/').pop();
-    const fileExtension = path.split('.').pop()
-    const relativePath = path.substring(path.indexOf(this.directory));
+    const fileExtension = this.path.extname(path);
+    const fileName = this.path.basename(path, fileExtension);
+    const absolutePath = path.substring(path.indexOf(this.directory));
+    const relativePath = this.findRelativePath(absolutePath);
 
     let task = this.storageService.uploadFile(relativePath, file, fileExtension);
     this.uploadTasks.push(task);
@@ -198,11 +217,15 @@ export class DirectoryTreeService implements OnDestroy {
     return this.projectsCollection.add(project);
   }
 
-  hashfile(path: string): string {
-    const sha256Hash = this.electronService.crypto.createHash('sha256');
-    const file = this.electronService.fs.readFileSync(path);
-    const hash = sha256Hash.update(file).digest('hex');
-    return hash;
+  hashfile(path: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const sha256Hash = this.electronService.crypto.createHash('sha256');
+      const stream = this.electronService.fs.createReadStream(path);
+
+      stream.on('data', (data) => { sha256Hash.update(data); });
+      stream.on('end', () => { resolve(sha256Hash.digest('hex')); });
+      stream.on('error', (error) => { reject(error); })
+    })
   }
 
   ngOnDestroy() {
