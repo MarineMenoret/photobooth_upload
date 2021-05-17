@@ -77,8 +77,6 @@ export class DirectoryTreeService implements OnDestroy {
 
   async buildTree(elementPath: string): Promise<IDirectoryTree> {
     let result = {} as IDirectoryTree;
-    //const fileExtention = this.path.extname(elementPath);
-    //let elementName = this.path.basename(elementPath, fileExtention);
     let elementName = this.path.basename(elementPath);
 
     if (this.fs.lstatSync(elementPath).isDirectory()) {
@@ -98,12 +96,11 @@ export class DirectoryTreeService implements OnDestroy {
 
       const file: IFile = {
         name: elementName,
-        path: elementPath.substring(elementPath.indexOf(this.directory)),
+        path: this.findRelativePath(elementPath),
         size: this.fs.statSync(elementPath).size,
         sha256: await this.hashfile(elementPath)
       };
       this.files.push(file);
-      //this.fileExtensions.push(fileExtention);
     }
     return result;
   }
@@ -138,7 +135,6 @@ export class DirectoryTreeService implements OnDestroy {
   uploadFile(path: string): void {
     const file = this.fs.readFileSync(path);
     const fileExtension = this.path.extname(path);
-    // const fileName = this.path.basename(path, fileExtension);
     const fileName = this.path.basename(path);
     const absolutePath = path.substring(path.indexOf(this.directory));
     const relativePath = this.findRelativePath(absolutePath);
