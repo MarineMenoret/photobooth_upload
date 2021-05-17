@@ -17,20 +17,19 @@ export class PhotoboothImportComponent implements OnInit {
     this.fs = this.electronService.fs;
     this.path = this.electronService.path;
     this.dialog = this.electronService.remote.dialog;
-    this.displayedColumns = ["Projects", "actions-col"];
+    this.displayedColumns = ["Projects", "Local", "Distant", "actions-col"];
 
     this.initialize();
   }
 
   initialize() {
-    this.projectsList = ["projet1", "projet2", "projet3"];
+    this.projectsList = [];
   }
 
-  ngOnInit(): void {
-    //récupérer la liste de projet sur PB qui contiendra le nouveau projet crée manuellement directement sur PB
-  }
+  ngOnInit(): void {}
 
   onSelectFolderBtnClick() {
+    this.initialize();
     this.dialog
       .showOpenDialog({
         title: "Select folder to import into photobooth",
@@ -39,7 +38,17 @@ export class PhotoboothImportComponent implements OnInit {
       })
       .then((directory) => {
         if (!directory.canceled) {
-          console.log("directory:", directory);
+          const directoryPath = directory.filePaths[0];
+          const directoryChild = this.fs.readdirSync(directoryPath);
+
+          directoryChild.forEach(child => {
+            const childPath = this.path.join(directoryPath, child);
+            if (this.fs.lstatSync(childPath).isDirectory()) {
+              this.projectsList.push(child);
+            } 
+          });
+
+          
         }
       });
   }
