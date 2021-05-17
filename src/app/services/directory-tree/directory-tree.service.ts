@@ -20,7 +20,7 @@ export class DirectoryTreeService implements OnDestroy {
   directoryPath: string;
   directory: string;
   files: Array<IFile>;
-  fileExtensions: Array<string>;
+  //fileExtensions: Array<string>;
   directoryTree: IDirectoryTree;
   numberOfFilesUploaded: number;
   uploadTasks: Array<any>;;
@@ -46,7 +46,7 @@ export class DirectoryTreeService implements OnDestroy {
   initialize() {
     this.directory = '';
     this.files = new Array<IFile>();
-    this.fileExtensions = [];
+    //this.fileExtensions = [];
     this.directoryTree = {} as IDirectoryTree;
     this.numberOfFilesUploaded = 0;
     this.uploadTasks = [];
@@ -71,14 +71,15 @@ export class DirectoryTreeService implements OnDestroy {
     return fileNames;
   }
 
-  getFileExtensions() {
+  /* getFileExtensions() {
     return this.fileExtensions;
-  }
+  } */
 
   async buildTree(elementPath: string): Promise<IDirectoryTree> {
     let result = {} as IDirectoryTree;
-    const fileExtention = this.path.extname(elementPath);
-    let elementName = this.path.basename(elementPath, fileExtention);
+    //const fileExtention = this.path.extname(elementPath);
+    //let elementName = this.path.basename(elementPath, fileExtention);
+    let elementName = this.path.basename(elementPath);
 
     if (this.fs.lstatSync(elementPath).isDirectory()) {
       let childElements = this.fs.readdirSync(elementPath);
@@ -102,7 +103,7 @@ export class DirectoryTreeService implements OnDestroy {
         sha256: await this.hashfile(elementPath)
       };
       this.files.push(file);
-      this.fileExtensions.push(fileExtention);
+      //this.fileExtensions.push(fileExtention);
     }
     return result;
   }
@@ -137,7 +138,8 @@ export class DirectoryTreeService implements OnDestroy {
   uploadFile(path: string): void {
     const file = this.fs.readFileSync(path);
     const fileExtension = this.path.extname(path);
-    const fileName = this.path.basename(path, fileExtension);
+    // const fileName = this.path.basename(path, fileExtension);
+    const fileName = this.path.basename(path);
     const absolutePath = path.substring(path.indexOf(this.directory));
     const relativePath = this.findRelativePath(absolutePath);
 

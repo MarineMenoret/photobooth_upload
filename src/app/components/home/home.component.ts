@@ -129,7 +129,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             directoryPath
           );
           this.fileNames = this.directoryTreeService.getFileNames();
-          this.fileExtensions = this.directoryTreeService.getFileExtensions();
+          // this.fileExtensions = this.directoryTreeService.getFileExtensions();
           console.log("directoryTree :", this.directoryTree);
         }
       });
