@@ -177,7 +177,7 @@ export class StorageService {
 
     req.on('end', () => {
       console.log("File succesfully downloaded");
-      
+
       this.checkFileIntegrity(path, fileName)
         .then((isCorrupted) => {
           this.filesCorruption[fileIndex] = isCorrupted;
@@ -195,8 +195,7 @@ export class StorageService {
     return new Promise<boolean>((resolve, reject) => {
       this.hashfile(path)
         .then((hash) => {
-          const fileNameWithoutExtension = this.electronService.path.basename(fileName, this.electronService.path.extname(fileName));
-          const isCorrupted = this.files.find(file => file.name == fileNameWithoutExtension)?.sha256 != hash;
+          const isCorrupted = this.files.find(file => file.name == fileName)?.sha256 != hash;
           resolve(isCorrupted);
         })
         .catch(error => reject(error));
