@@ -183,12 +183,12 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
-  buildRelativeTree(directoryTree: IDirectoryTree, rootDirectory: string): IDirectoryTree {
+  buildRelativeTree(directoryTree: IDirectoryTree): IDirectoryTree {
     if (directoryTree.path) {
-      directoryTree.path = directoryTree.path.substring(directoryTree.path.indexOf(rootDirectory));
+      directoryTree.path = this.findRelativePath(directoryTree.path);
       return directoryTree;
     } else {
-      directoryTree.children.forEach((child: IDirectoryTree) => this.buildRelativeTree(child, rootDirectory));
+      directoryTree.children.forEach((child: IDirectoryTree) => this.buildRelativeTree(child));
       return directoryTree;
     }
   }
@@ -197,7 +197,7 @@ export class DirectoryTreeService implements OnDestroy {
     // Deep copy to prevent modification of the current directory tree.
     const directoryTreeClone = JSON.parse(JSON.stringify(directoryTree));
 
-    const relativeDirectoryTree = this.buildRelativeTree(directoryTreeClone, this.directory);
+    const relativeDirectoryTree = this.buildRelativeTree(directoryTreeClone);
 
     const project: IProject = {
       name: directoryTree.name,
