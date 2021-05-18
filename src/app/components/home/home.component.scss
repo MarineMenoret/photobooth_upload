@@ -5,19 +5,19 @@
   }
 
   .mat-card-title {
-    color : #7D7D7D;
+    color: #7d7d7d;
     margin-bottom: 30px;
   }
 
-  .selectFolderBtn{
+  .selectFolderBtn {
     margin-bottom: 30px;
   }
 
-  .mat-list{
+  .mat-list {
     margin-bottom: 30px;
   }
 
-  .list-line{
+  .list-line {
     display: flex;
     width: 100%;
   }
@@ -31,21 +31,21 @@
     height: 10px;
   }
 
-  .btn{
+  .btn {
     color: white;
     font-weight: bold;
     margin-right: 15px;
   }
 
-  .uploadBtn{
-    background-color: #1C83E9;
+  .uploadBtn {
+    background-color: #1c83e9;
   }
 
-  .uploadStatusMsg{
-    color: #1C83E9;
+  .uploadStatusMsg {
+    color: #1c83e9;
   }
 
-  .uploadCanceled{
+  .uploadCanceled {
     color: red;
   }
 
@@ -53,7 +53,19 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
+    height: fit-content;
+  }
+
+  .downloadProgress .file {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .downloadProgress .downloadButtons button {
+    width: fit-content;
     height: fit-content;
   }
 
@@ -62,53 +74,53 @@
   }
 }
 
-.uploadFinalized .list-line{
+.uploadFinalized .list-line {
   color: #a09e9e;
 }
 
 //couleur de progression des progress-bar :
-::ng-deep .mat-progress-bar-fill::after{
-  background-color: #1C83E9 !important;
+::ng-deep .mat-progress-bar-fill::after {
+  background-color: #1c83e9 !important;
 }
 
 //couleur du buffer des progress-bar :
-::ng-deep .mat-progress-bar-buffer{
+::ng-deep .mat-progress-bar-buffer {
   background-color: #9eccfa !important;
 }
 
 //upload progressbar grisées lorsque l'upload est terminé :
-::ng-deep .uploadFinalized .mat-progress-bar-fill::after{
+::ng-deep .uploadFinalized .mat-progress-bar-fill::after {
   background-color: #a09e9e !important;
 }
 
 //upload progressbar buffer grisées lorsque l'upload est terminé :
-::ng-deep .uploadFinalized .mat-progress-bar-buffer{
+::ng-deep .uploadFinalized .mat-progress-bar-buffer {
   background-color: #bbb8b8 !important;
 }
 
 //couleur du bouton login :
 ::ng-deep .mat-raised-button.mat-accent {
-  background-color: #1C83E9;
+  background-color: #1c83e9;
 }
 
 //couleur des icons fenêtre login :
 ::ng-deep .mat-icon.mat-primary {
-  color: #1C83E9;
+  color: #1c83e9;
 }
 
 //couleur du placeholder dans l'input
 ::ng-deep .mat-focused .mat-form-field-label {
-  color: #1C83E9 !important;
+  color: #1c83e9 !important;
 }
 
 //couleur de la ligne de base de l'input:
 ::ng-deep .mat-form-field-ripple {
-  background-color: #1C83E9 !important;
+  background-color: #1c83e9 !important;
 }
 
 //couleur du texte des boutons des snackbar:
 ::ng-deep .mat-simple-snackbar-action {
-  color: #1C83E9 !important;
+  color: #1c83e9 !important;
 }
 
 //couleur de la ligne indiquant la tab active :

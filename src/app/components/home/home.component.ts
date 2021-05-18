@@ -7,6 +7,8 @@ import { StorageService } from "../../services/storage/storage.service";
 import { MatSelectionListChange } from "@angular/material/list";
 import { Reference } from "@angular/fire/storage/interfaces";
 import { Dialog } from "electron";
+import { IDirectoryTree } from "../../shared/interfaces/directory-tree";
+import * as request from 'request';
 
 @Component({
   selector: "app-home",
@@ -18,7 +20,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   fs: any;
   path: any;
   dialog: Dialog;
-  directoryTree: Object;
+  directoryTree: IDirectoryTree;
   fileNames: Array<any>;
   uploadPercentage: Object;
   uploadFinalized: boolean;
@@ -30,8 +32,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   selectedFolder: string;
   filesToDownload: Array<string>;
   downloadPercentage: Array<number>;
+  filesCorruption: Array<boolean>;
   isDownloading: boolean;
   downloadSubscriptions: Array<Subscription>;
+  downloadRequests: Array<request.Request>;
 
   constructor(
     private authService: AuthService,
@@ -68,16 +72,24 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.selectedFolder = "";
     this.filesToDownload = new Array<string>();
     this.downloadPercentage = new Array<number>();
+    this.filesCorruption = new Array<boolean>();
     this.isDownloading = false;
     this.downloadSubscriptions = new Array<Subscription>();
+    this.downloadRequests = new Array<request.Request>();
 
     const fileNamesSubscription = this.storageService.fileNamesNotification.subscribe((files) => {
       this.filesToDownload = files;
+      this.filesCorruption = new Array<boolean>(files.length).fill(false);
       this.ref.detectChanges();
     });
 
     const downloadProgressSubscription = this.storageService.downloadProgressNotification.subscribe((downloadProgress) => {
       this.downloadPercentage = downloadProgress;
+      this.ref.detectChanges();
+    });
+
+    const filesCorruptionSubscription = this.storageService.filesCorruptionNotification.subscribe((filesCorruption) => {
+      this.filesCorruption = filesCorruption;
       this.ref.detectChanges();
     });
 
@@ -90,9 +102,13 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
     });
 
+    const downloadRequestSubscription = this.storageService.filesDownloadRequestNotification.subscribe(requests => this.downloadRequests = requests);
+
     this.downloadSubscriptions.push(fileNamesSubscription);
     this.downloadSubscriptions.push(downloadProgressSubscription);
     this.downloadSubscriptions.push(projectDownloadSubscription);
+    this.downloadSubscriptions.push(downloadRequestSubscription);
+    this.downloadSubscriptions.push(filesCorruptionSubscription);
   }
 
   onFolderSelect() {
@@ -104,10 +120,10 @@ export class HomeComponent implements OnInit, OnDestroy {
         buttonLabel: "Select",
         properties: ["openDirectory"],
       })
-      .then((directory) => {
+      .then(async (directory) => {
         if (!directory.canceled) {
           let directoryPath = directory.filePaths[0];
-          this.directoryTree = this.directoryTreeService.setDirectoryPath(
+          this.directoryTree = await this.directoryTreeService.setDirectoryPath(
             directoryPath
           );
           this.fileNames = this.directoryTreeService.getFileNames();
@@ -160,6 +176,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   onDownload(): void {
+    this.downloadRequests.length = 0;
     this.dialog.showOpenDialog({
       title: "Choose a folder to save your files",
       properties: ['openDirectory'],
@@ -174,6 +191,22 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   onPrevious(): void {
     this.isDownloading = false;
+  }
+
+  onDownloadRestart(fileIndex: number): void {
+    if (this.downloadRequests[fileIndex] != null) {
+      // TODO: restart the download request.
+    } else {
+      // TODO: error.
+    }
+  }
+
+  onDownloadCancel(fileIndex: number): void {
+    if (this.downloadRequests[fileIndex] != null) {
+      this.downloadRequests[fileIndex].abort();
+    } else {
+      console.log("The download of this file has not yet started!");
+    }
   }
 
   ngOnDestroy() {
