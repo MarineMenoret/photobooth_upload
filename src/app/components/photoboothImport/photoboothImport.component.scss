@@ -1,19 +1,23 @@
-:host {
-  .mat-card {
-    max-width: 75%;
-    margin: 100px auto;
-  }
-
-  table {
-    margin: 20px auto;
-    width: 75%;
-  }
-
-  .actionsBtn {
-    color: #1C83E9;
-  }
+.photobooth-sync-container {
+  display: flex;
+  align-content: stretch;
+  align-items: center;
+  padding: 20px;
 }
 
-//couleur des raised button :
-// ::ng-deep 
+.remote-projects-container,
+.local-projects-container {
+  width: 100%;
+}
 
+.sync-buttons {
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+table {
+  width: 100%;
+  margin-bottom: 20px;
+}
