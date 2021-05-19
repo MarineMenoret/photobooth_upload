@@ -80,7 +80,7 @@
         <mat-card-actions>
           <ng-template [ngIf]="!isDownloading" [ngIfElse]="previousButton">
             <button mat-raised-button (click)="getProjectFolders()">REFRESH</button>
-            <button mat-raised-button [disabled]="selectedFolder? false: true" (click)="onDownload()">DOWNLOAD</button>
+            <button mat-raised-button [disabled]="!selectedFolder" (click)="onDownload()">DOWNLOAD</button>
           </ng-template>
           <ng-template #previousButton>
             <button mat-raised-button (click)="onPrevious()">PREVIOUS</button>
@@ -89,7 +89,7 @@
       </mat-card>
     </ng-container>
   </mat-tab>
-  <mat-tab label="Photobooth import">
+  <mat-tab label="Photobooth Sync">
     <photoboothImport></photoboothImport>
   </mat-tab>
 </mat-tab-group>
