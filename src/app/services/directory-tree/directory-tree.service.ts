@@ -94,6 +94,7 @@ export class DirectoryTreeService implements OnDestroy {
 
       const file: IFile = {
         name: elementName,
+        creationDate: this.fs.statSync(elementPath).birthtime,
         path: this.findRelativePath(elementPath),
         size: this.fs.statSync(elementPath).size,
         sha256: await this.hashfile(elementPath)
