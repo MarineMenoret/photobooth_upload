@@ -50,7 +50,11 @@
               <mat-list-item *ngFor="let file of project.files">
                 <div class="file-name-container">
                   <mat-icon mat-list-icon>insert_drive_file</mat-icon>
-                  <div mat-line>{{file.name}}</div>
+                  <div class="file-information">
+                    <div mat-line>{{file.name}}</div>
+                    <div mat-line>{{file.creationDate.toLocaleDateString()}}
+                      à {{file.creationDate.toLocaleTimeString()}}</div>
+                  </div>
                 </div>
               </mat-list-item>
             </mat-list>
@@ -120,7 +124,11 @@
               <mat-list-item *ngFor="let file of project.files">
                 <div class="file-name-container">
                   <mat-icon mat-list-icon>insert_drive_file</mat-icon>
-                  <div mat-line>{{file.name}}</div>
+                  <div class="file-information">
+                    <div mat-line>{{file.name}}</div>
+                    <div mat-line>{{file.creationDate.toLocaleDateString()}}
+                      à {{file.creationDate.toLocaleTimeString()}}</div>
+                  </div>
                 </div>
               </mat-list-item>
             </mat-list>

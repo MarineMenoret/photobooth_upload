@@ -24,7 +24,9 @@ export class SyncService {
         (querySnapshot) => {
           querySnapshot.forEach((doc) => {
             const data = doc.data();
-            data.creationDate = (data.creationDate as unknown  as Timestamp).toDate();
+            // Convert Timestamp to Date.
+            data.creationDate = (data.creationDate as unknown as Timestamp).toDate();
+            data.files.forEach(file => file.creationDate = (file.creationDate as unknown as Timestamp).toDate());
             projects.push(data);
           });
           this.remoteProjects$.next(projects);
