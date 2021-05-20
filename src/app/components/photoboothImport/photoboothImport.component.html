@@ -45,9 +45,9 @@
         <td mat-cell *matCellDef="let project" [attr.colspan]="displayedColumns.length">
           <div class="project-detail"
                [@detailExpand]="project == expandedRemoteProject ? 'expanded' : 'collapsed'">
-            <mat-list>
+            <mat-selection-list>
               <div mat-subheader>Files</div>
-              <mat-list-item *ngFor="let file of project.files">
+              <mat-list-option *ngFor="let file of project.files">
                 <div class="file-name-container">
                   <mat-icon mat-list-icon>insert_drive_file</mat-icon>
                   <div class="file-information">
@@ -56,8 +56,8 @@
                       à {{file.creationDate.toLocaleTimeString()}}</div>
                   </div>
                 </div>
-              </mat-list-item>
-            </mat-list>
+              </mat-list-option>
+            </mat-selection-list>
           </div>
         </td>
       </ng-container>
@@ -119,9 +119,9 @@
         <td mat-cell *matCellDef="let project" [attr.colspan]="displayedColumns.length">
           <div class="project-detail"
                [@detailExpand]="project == expandedLocalProject ? 'expanded' : 'collapsed'">
-            <mat-list>
+            <mat-selection-list>
               <div mat-subheader>Files</div>
-              <mat-list-item *ngFor="let file of project.files">
+              <mat-list-option *ngFor="let file of project.files">
                 <div class="file-name-container">
                   <mat-icon mat-list-icon>insert_drive_file</mat-icon>
                   <div class="file-information">
@@ -130,8 +130,8 @@
                       à {{file.creationDate.toLocaleTimeString()}}</div>
                   </div>
                 </div>
-              </mat-list-item>
-            </mat-list>
+              </mat-list-option>
+            </mat-selection-list>
           </div>
         </td>
       </ng-container>

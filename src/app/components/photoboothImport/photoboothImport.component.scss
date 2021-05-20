@@ -48,7 +48,11 @@ tr.project-row:not(.project-expanded-row):active {
   margin-right: 5px;
 }
 
-.project-detail-row td .project-detail mat-list mat-list-item {
+.project-detail-row td .project-detail {
+  overflow: hidden;
+}
+
+.project-detail-row td .project-detail mat-selection-list mat-list-option {
   height: fit-content;
   margin-bottom: 10px;
 }
@@ -56,9 +60,4 @@ tr.project-row:not(.project-expanded-row):active {
 .project-detail-row td .file-name-container .file-information div:last-child {
   font-size: 10px;
   color: gray;
-}
-
-.project-detail {
-  overflow: hidden;
-  display: flex;
 }
