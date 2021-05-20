@@ -1,14 +1,14 @@
-import { Injectable, OnDestroy } from '@angular/core';
-import { AngularFirestore, AngularFirestoreCollection, DocumentReference } from '@angular/fire/firestore';
-import { Subject, Subscription } from 'rxjs';
-import { finalize } from 'rxjs/operators';
-import { ElectronService } from '../../core/services';
-import { StorageService } from '../storage/storage.service';
-import { IDirectoryTree } from '../../shared/interfaces/directory-tree';
-import { IProject } from '../../shared/interfaces/project';
+import {Injectable, OnDestroy} from '@angular/core';
+import {AngularFirestore, AngularFirestoreCollection, DocumentReference} from '@angular/fire/firestore';
+import {Subject, Subscription} from 'rxjs';
+import {finalize} from 'rxjs/operators';
+import {ElectronService} from '../../core/services';
+import {StorageService} from '../storage/storage.service';
+import {IDirectoryTree} from '../../shared/interfaces/directory-tree';
+import {IProject} from '../../shared/interfaces/project';
 import * as fs from 'fs';
 import * as path from 'path';
-import { IFile } from '../../shared/interfaces/file';
+import {IFile} from '../../shared/interfaces/file';
 
 @Injectable({
   providedIn: 'root'
@@ -67,6 +67,10 @@ export class DirectoryTreeService implements OnDestroy {
     const fileNames = new Array<string>();
     this.files.forEach(file => fileNames.push(file.name));
     return fileNames;
+  }
+
+  getFiles(): Array<IFile> {
+    return this.files;
   }
 
   async buildTree(elementPath: string): Promise<IDirectoryTree> {
@@ -152,7 +156,8 @@ export class DirectoryTreeService implements OnDestroy {
           }
         })
       ).subscribe(
-        res => { }, err => {
+        res => {
+        }, err => {
           this.uploadStatusMsg$.next('Error during files upload. Please retry.');
         }
       )
@@ -211,9 +216,15 @@ export class DirectoryTreeService implements OnDestroy {
       const sha256Hash = this.electronService.crypto.createHash('sha256');
       const stream = this.electronService.fs.createReadStream(path);
 
-      stream.on('data', (data) => { sha256Hash.update(data); });
-      stream.on('end', () => { resolve(sha256Hash.digest('hex')); });
-      stream.on('error', (error) => { reject(error); });
+      stream.on('data', (data) => {
+        sha256Hash.update(data);
+      });
+      stream.on('end', () => {
+        resolve(sha256Hash.digest('hex'));
+      });
+      stream.on('error', (error) => {
+        reject(error);
+      });
     });
   }
 
