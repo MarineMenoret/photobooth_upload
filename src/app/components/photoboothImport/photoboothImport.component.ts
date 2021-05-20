@@ -3,8 +3,8 @@ import {IProject} from "../../shared/interfaces/project";
 import {SyncService} from "../../services/sync/sync.service";
 import {Subscription} from "rxjs";
 import {ElectronService} from "../../core/services";
-import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
 import {animate, state, style, transition, trigger} from "@angular/animations";
+import {DirectoryTreeService} from "../../services/directory-tree/directory-tree.service";
 
 @Component({
   selector: "photoboothImport",
@@ -26,7 +26,9 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   expandedRemoteProject: IProject | null;
   expandedLocalProject: IProject | null;
 
-  constructor(private syncService: SyncService, private electronService: ElectronService) {
+  constructor(private syncService: SyncService,
+              private electronService: ElectronService,
+              private directoryTreeService: DirectoryTreeService) {
   }
 
   ngOnInit(): void {
@@ -58,23 +60,28 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
       buttonLabel: "Select",
       properties: ["openDirectory"],
     })
-      .then((directory) => {
+      .then(async (directory) => {
         if (!directory.canceled) {
           const directoryPath = directory.filePaths[0];
           const directoryChild = this.electronService.fs.readdirSync(directoryPath);
 
-          directoryChild.forEach(child => {
+          for (const child of directoryChild) {
             const childPath = this.electronService.path.join(directoryPath, child);
+
             if (this.electronService.fs.lstatSync(childPath).isDirectory()) {
+              this.directoryTreeService.initialize();
+
               const project: IProject = {
                 name: child,
                 creationDate: this.electronService.fs.lstatSync(childPath).birthtime,
-                directoryTree: {} as IDirectoryTree,
-                files: []
+                directoryTree: await this.directoryTreeService.buildTree(childPath),
+                files: this.directoryTreeService.getFiles()
               };
+
               projects.push(project);
             }
-          });
+          }
+
           this.localProjects = projects;
         }
       })

@@ -38,6 +38,16 @@ tr.project-row:not(.project-expanded-row):active {
   border-bottom-width: 0;
 }
 
+.project-row td .project-name-container,
+.project-detail-row td .file-name-container {
+  display: flex;
+  align-items: center;
+}
+
+.project-row td .project-name-container mat-icon {
+  margin-right: 5px;
+}
+
 .project-detail {
   overflow: hidden;
   display: flex;

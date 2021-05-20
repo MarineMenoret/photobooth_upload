@@ -19,7 +19,12 @@
       <!-- Project Column -->
       <ng-container matColumnDef="project">
         <th mat-header-cell *matHeaderCellDef>Project</th>
-        <td mat-cell *matCellDef="let project">{{project.name}}</td>
+        <td mat-cell *matCellDef="let project">
+          <div class="project-name-container">
+            <mat-icon mat-list-icon>folder</mat-icon>
+            <div mat-line>{{project.name}}</div>
+          </div>
+        </td>
       </ng-container>
 
       <!-- Creation date Column -->
@@ -40,7 +45,15 @@
         <td mat-cell *matCellDef="let project" [attr.colspan]="displayedColumns.length">
           <div class="project-detail"
                [@detailExpand]="project == expandedRemoteProject ? 'expanded' : 'collapsed'">
-            Project description
+            <mat-list>
+              <div mat-subheader>Files</div>
+              <mat-list-item *ngFor="let file of project.files">
+                <div class="file-name-container">
+                  <mat-icon mat-list-icon>insert_drive_file</mat-icon>
+                  <div mat-line>{{file.name}}</div>
+                </div>
+              </mat-list-item>
+            </mat-list>
           </div>
         </td>
       </ng-container>
@@ -76,7 +89,12 @@
       <!-- Project Column -->
       <ng-container matColumnDef="project">
         <th mat-header-cell *matHeaderCellDef>Project</th>
-        <td mat-cell *matCellDef="let project">{{project.name}}</td>
+        <td mat-cell *matCellDef="let project">
+          <div class="project-name-container">
+            <mat-icon mat-list-icon>folder</mat-icon>
+            <div mat-line>{{project.name}}</div>
+          </div>
+        </td>
       </ng-container>
 
       <!-- Creation date Column -->
@@ -97,7 +115,15 @@
         <td mat-cell *matCellDef="let project" [attr.colspan]="displayedColumns.length">
           <div class="project-detail"
                [@detailExpand]="project == expandedLocalProject ? 'expanded' : 'collapsed'">
-            Project description
+            <mat-list>
+              <div mat-subheader>Files</div>
+              <mat-list-item *ngFor="let file of project.files">
+                <div class="file-name-container">
+                  <mat-icon mat-list-icon>insert_drive_file</mat-icon>
+                  <div mat-line>{{file.name}}</div>
+                </div>
+              </mat-list-item>
+            </mat-list>
           </div>
         </td>
       </ng-container>
