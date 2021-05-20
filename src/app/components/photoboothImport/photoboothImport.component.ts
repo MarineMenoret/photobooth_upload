@@ -23,6 +23,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   initialize(): void {
     this.subscriptions = new Array<Subscription>();
     this.displayedColumns = ['project', 'creation date', 'state'];
+    this.remoteProjects =  new Array<IProject>();
 
     this.subscriptions.push(
       this.syncService.remoteProjects$.subscribe((projects) => {

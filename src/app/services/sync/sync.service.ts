@@ -2,6 +2,8 @@ import {Injectable} from '@angular/core';
 import {AngularFirestore, AngularFirestoreCollection} from "@angular/fire/firestore";
 import {IProject} from "../../shared/interfaces/project";
 import {Subject} from "rxjs";
+import firebase from "firebase";
+import Timestamp = firebase.firestore.Timestamp;
 
 @Injectable({
   providedIn: 'root'
@@ -21,7 +23,9 @@ export class SyncService {
       .subscribe(
         (querySnapshot) => {
           querySnapshot.forEach((doc) => {
-            projects.push(doc.data());
+            const data = doc.data();
+            data.creationDate = (data.creationDate as unknown  as Timestamp).toDate();
+            projects.push(data);
           });
           this.remoteProjects$.next(projects);
         },
