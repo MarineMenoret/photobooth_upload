@@ -1,7 +1,7 @@
 .photobooth-sync-container {
   display: flex;
   align-content: stretch;
-  align-items: center;
+  align-items: flex-start;
   padding: 20px;
 }
 
@@ -20,4 +20,25 @@
 table {
   width: 100%;
   margin-bottom: 20px;
+}
+
+tr.project-detail-row {
+  height: 0;
+}
+
+tr.project-row:not(.project-expanded-row):hover {
+  background: whitesmoke;
+}
+
+tr.project-row:not(.project-expanded-row):active {
+  background: #efefef;
+}
+
+.project-row td {
+  border-bottom-width: 0;
+}
+
+.project-detail {
+  overflow: hidden;
+  display: flex;
 }

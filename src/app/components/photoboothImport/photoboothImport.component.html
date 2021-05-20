@@ -3,12 +3,17 @@
   <div class="remote-projects-container">
     <h5>Remote projects</h5>
 
-    <table mat-table [dataSource]="remoteProjects" class="mat-elevation-z8">
+    <table mat-table [dataSource]="remoteProjects" class="mat-elevation-z8" multiTemplateDataRows>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-row *matRowDef="let project; columns: displayedColumns;"
+          class="project-row"
+          [class.project-expanded-row]="expandedRemoteProject === project"
+          (click)="expandedRemoteProject = expandedRemoteProject === project ? null : project">
+      </tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="project-detail-row"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" colspan="3">No data.</td>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length">No data.</td>
       </tr>
 
       <!-- Project Column -->
@@ -28,6 +33,16 @@
       <ng-container matColumnDef="state">
         <th mat-header-cell *matHeaderCellDef>State</th>
         <td mat-cell *matCellDef="let project">Unknown</td>
+      </ng-container>
+
+      <!-- Project files -->
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let project" [attr.colspan]="displayedColumns.length">
+          <div class="project-detail"
+               [@detailExpand]="project == expandedRemoteProject ? 'expanded' : 'collapsed'">
+            Project description
+          </div>
+        </td>
       </ng-container>
 
     </table>
@@ -45,12 +60,17 @@
   <div class="local-projects-container">
     <h5>Local projects</h5>
 
-    <table mat-table [dataSource]="localProjects" class="mat-elevation-z8">
+    <table mat-table [dataSource]="localProjects" class="mat-elevation-z8" multiTemplateDataRows>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-row *matRowDef="let project; columns: displayedColumns;"
+          class="project-row"
+          [class.project-expanded-row]="expandedLocalProject === project"
+          (click)="expandedLocalProject = expandedLocalProject === project ? null : project">
+      </tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="project-detail-row"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" colspan="3">No data.</td>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length">No data.</td>
       </tr>
 
       <!-- Project Column -->
@@ -70,6 +90,16 @@
       <ng-container matColumnDef="state">
         <th mat-header-cell *matHeaderCellDef>State</th>
         <td mat-cell *matCellDef="let project">Unknown</td>
+      </ng-container>
+
+      <!-- Project files -->
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let project" [attr.colspan]="displayedColumns.length">
+          <div class="project-detail"
+               [@detailExpand]="project == expandedLocalProject ? 'expanded' : 'collapsed'">
+            Project description
+          </div>
+        </td>
       </ng-container>
 
     </table>

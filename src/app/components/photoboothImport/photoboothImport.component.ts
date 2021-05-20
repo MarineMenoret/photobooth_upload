@@ -4,17 +4,27 @@ import {SyncService} from "../../services/sync/sync.service";
 import {Subscription} from "rxjs";
 import {ElectronService} from "../../core/services";
 import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
+import {animate, state, style, transition, trigger} from "@angular/animations";
 
 @Component({
   selector: "photoboothImport",
   templateUrl: "./photoboothImport.component.html",
   styleUrls: ["./photoboothImport.component.scss"],
+  animations: [trigger('detailExpand', [
+    state('collapsed', style({height: '0px', minHeight: '0'})),
+    state('expanded', style({height: '*'})),
+    transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
+  ]),
+  ],
 })
+
 export class PhotoboothImportComponent implements OnInit, OnDestroy {
   subscriptions: Array<Subscription>;
   displayedColumns: Array<string>;
   remoteProjects: Array<IProject>;
   localProjects: Array<IProject>;
+  expandedRemoteProject: IProject | null;
+  expandedLocalProject: IProject | null;
 
   constructor(private syncService: SyncService, private electronService: ElectronService) {
   }
