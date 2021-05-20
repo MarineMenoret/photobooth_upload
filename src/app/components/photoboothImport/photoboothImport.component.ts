@@ -1,19 +1,41 @@
-import {Component} from "@angular/core";
-import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
+import {Component, OnDestroy, OnInit} from "@angular/core";
 import {IProject} from "../../shared/interfaces/project";
-
-const ELEMENT_DATA: IProject[] = [
-  { name: 'Project 1', creationDate: new Date(), directoryTree: {} as IDirectoryTree, files: [] },
-  { name: 'Project 2', creationDate: new Date(), directoryTree: {} as IDirectoryTree, files: [] },
-  { name: 'Project 2', creationDate: new Date(), directoryTree: {} as IDirectoryTree, files: [] },
-];
+import {SyncService} from "../../services/sync/sync.service";
+import {Subscription} from "rxjs";
 
 @Component({
   selector: "photoboothImport",
   templateUrl: "./photoboothImport.component.html",
   styleUrls: ["./photoboothImport.component.scss"],
 })
-export class PhotoboothImportComponent {
-  displayedColumns: string[] = ['project', 'creation date', 'state'];
-  dataSource = ELEMENT_DATA;
+export class PhotoboothImportComponent implements OnInit, OnDestroy {
+  subscriptions: Array<Subscription>;
+  displayedColumns: Array<string>;
+  remoteProjects: Array<IProject>;
+
+  constructor(private syncService: SyncService) {
+  }
+
+  ngOnInit(): void {
+    this.initialize();
+  }
+
+  initialize(): void {
+    this.subscriptions = new Array<Subscription>();
+    this.displayedColumns = ['project', 'creation date', 'state'];
+
+    this.subscriptions.push(
+      this.syncService.remoteProjects$.subscribe((projects) => {
+        this.remoteProjects = projects;
+      })
+    );
+  }
+
+  getRemoteProjects(): void {
+    this.syncService.getRemoteProjects();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.forEach(subscription => subscription.unsubscribe());
+  }
 }

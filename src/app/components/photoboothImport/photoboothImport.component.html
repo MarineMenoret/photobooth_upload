@@ -3,7 +3,7 @@
   <div class="remote-projects-container">
     <h5>Remote projects</h5>
 
-    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+    <table mat-table [dataSource]="remoteProjects" class="mat-elevation-z8">
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
@@ -30,7 +30,7 @@
       </ng-container>
 
     </table>
-    <button mat-raised-button >IMPORT REMOTE PROJECTS</button>
+    <button mat-raised-button (click)="getRemoteProjects()">IMPORT REMOTE PROJECTS</button>
   </div>
 
   <div class="sync-buttons">
@@ -42,7 +42,7 @@
   <div class="local-projects-container">
     <h5>Local projects</h5>
 
-    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+    <table mat-table [dataSource]="remoteProjects" class="mat-elevation-z8">
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
