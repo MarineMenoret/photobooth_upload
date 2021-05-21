@@ -1,5 +1,5 @@
 import {Component, OnDestroy, OnInit} from "@angular/core";
-import {IProject} from "../../shared/interfaces/project";
+import {ISyncProject} from "../../shared/interfaces/project";
 import {SyncService} from "../../services/sync/sync.service";
 import {Subscription} from "rxjs";
 import {ElectronService} from "../../core/services";
@@ -21,10 +21,10 @@ import {DirectoryTreeService} from "../../services/directory-tree/directory-tree
 export class PhotoboothImportComponent implements OnInit, OnDestroy {
   subscriptions: Array<Subscription>;
   displayedColumns: Array<string>;
-  remoteProjects: Array<IProject>;
-  localProjects: Array<IProject>;
-  expandedRemoteProject: IProject | null;
-  expandedLocalProject: IProject | null;
+  remoteProjects: Array<ISyncProject>;
+  localProjects: Array<ISyncProject>;
+  expandedRemoteProject: ISyncProject | null;
+  expandedLocalProject: ISyncProject | null;
 
   constructor(private syncService: SyncService,
               private electronService: ElectronService,
@@ -38,8 +38,8 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   initialize(): void {
     this.subscriptions = new Array<Subscription>();
     this.displayedColumns = ['project', 'creation date', 'state'];
-    this.remoteProjects = new Array<IProject>();
-    this.localProjects = new Array<IProject>();
+    this.remoteProjects = new Array<ISyncProject>();
+    this.localProjects = new Array<ISyncProject>();
 
     this.subscriptions.push(
       this.syncService.remoteProjects$.subscribe((projects) => {
@@ -53,7 +53,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   }
 
   getLocalProjects(): void {
-    const projects = new Array<IProject>();
+    const projects = new Array<ISyncProject>();
 
     this.electronService.remote.dialog.showOpenDialog({
       title: "Select a folder to import projects into photobooth",
@@ -71,11 +71,14 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
             if (this.electronService.fs.lstatSync(childPath).isDirectory()) {
               this.directoryTreeService.initialize();
 
-              const project: IProject = {
+              const project: ISyncProject = {
                 name: child,
                 creationDate: this.electronService.fs.lstatSync(childPath).birthtime,
                 directoryTree: await this.directoryTreeService.buildTree(childPath),
-                files: this.directoryTreeService.getFiles()
+                files: this.directoryTreeService.getFiles().map(file => {
+                  return {...file, sync: null};
+                }),
+                sync: null
               };
 
               projects.push(project);
@@ -86,6 +89,57 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
         }
       })
       .catch(error => console.log((error)));
+  }
+
+  synchronizeProjects(): void {
+    this.remoteProjects.forEach((remoteProject) => {
+      const localProjectIndex = this.localProjects.findIndex(localProject => localProject.name == remoteProject.name);
+
+      if (localProjectIndex == -1) {
+        remoteProject.sync = 'unsynchronized';
+        remoteProject.files.forEach(remoteFile => remoteFile.sync = 'unsynchronized');
+      } else {
+        remoteProject.files.forEach((remoteFile) => {
+          const localFileIndex = this.localProjects[localProjectIndex].files.findIndex(localFile => {
+            const pathSegments = localFile.path.split(this.electronService.path.sep);
+            const relativePathSegments = pathSegments.slice(pathSegments.indexOf(this.localProjects[localProjectIndex].name));
+            const localRelativePath = this.electronService.path.join(...relativePathSegments);
+            return localFile.name == remoteFile.name && localRelativePath == remoteFile.path;
+          });
+
+          if (localFileIndex == -1) {
+            remoteFile.sync = 'unsynchronized';
+          } else {
+            if (remoteFile.sha256 == this.localProjects[localProjectIndex].files[localFileIndex].sha256) {
+              remoteFile.sync = 'synchronized';
+              this.localProjects[localProjectIndex].files[localFileIndex].sync = 'synchronized';
+            } else {
+              remoteFile.sync = 'unsynchronized';
+              this.localProjects[localProjectIndex].files[localFileIndex].sync = 'unsynchronized';
+            }
+          }
+        });
+
+        if (remoteProject.files.every(file => file.sync == 'synchronized')) {
+          remoteProject.sync = 'synchronized';
+        } else {
+          remoteProject.sync = 'unsynchronized';
+        }
+
+        if (this.localProjects[localProjectIndex].files.every(file => file.sync == 'synchronized')) {
+          this.localProjects[localProjectIndex].sync = 'synchronized';
+        } else {
+          this.localProjects[localProjectIndex].sync = 'unsynchronized';
+        }
+      }
+    });
+
+    this.localProjects.forEach((localProject) => {
+      if (localProject.sync == null) {
+        localProject.sync = 'unsynchronized';
+        localProject.files.forEach(localFile => localFile.sync = 'unsynchronized');
+      }
+    });
   }
 
   ngOnDestroy(): void {

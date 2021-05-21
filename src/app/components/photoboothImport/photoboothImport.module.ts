@@ -8,6 +8,7 @@ import {PhotoboothImportComponent} from './photoboothImport.component';
 import {SharedModule} from '../../shared/shared.module';
 
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
+import {MatTooltipModule} from "@angular/material/tooltip";
 
 @NgModule({
   declarations: [PhotoboothImportComponent],
@@ -16,7 +17,8 @@ import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
     MatTableModule,
     CommonModule,
     SharedModule,
-    BrowserAnimationsModule
+    BrowserAnimationsModule,
+    MatTooltipModule
   ],
   exports: [
     PhotoboothImportComponent
