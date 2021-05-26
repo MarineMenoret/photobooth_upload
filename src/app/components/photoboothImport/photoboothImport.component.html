@@ -1,150 +1,109 @@
 <div class="photobooth-sync-container">
-  <!-- Remote projects table -->
-  <div class="remote-projects-container">
-    <h5>Remote projects</h5>
+  <h5>Projects synchronization</h5>
 
-    <table mat-table [dataSource]="remoteProjects" class="mat-elevation-z8" multiTemplateDataRows>
+  <table mat-table [dataSource]="syncProjects" class="mat-elevation-z8" multiTemplateDataRows>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let project; columns: displayedColumns;"
-          class="project-row"
-          [class.project-expanded-row]="expandedRemoteProject === project"
-          (click)="expandedRemoteProject = expandedRemoteProject === project ? null : project">
-      </tr>
-      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="project-detail-row"></tr>
-      <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [attr.colspan]="displayedColumns.length">No data.</td>
-      </tr>
+    <tr mat-header-row *matHeaderRowDef="displayedProjectColumns"></tr>
+    <tr mat-row *matRowDef="let project; columns: displayedProjectColumns;"
+        class="project-row"
+        [class.project-expanded-row]="expandedSyncProject === project"
+        (click)="expandedSyncProject = expandedSyncProject === project ? null : project">
+    </tr>
+    <tr mat-row *matRowDef="let row; columns: displayedFileColumns" class="project-detail-row"></tr>
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell" [attr.colspan]="displayedProjectColumns.length">No data.</td>
+    </tr>
 
-      <!-- Project Column -->
-      <ng-container matColumnDef="project">
-        <th mat-header-cell *matHeaderCellDef>Project</th>
-        <td mat-cell *matCellDef="let project">
-          <div class="project-name-container">
-            <mat-icon mat-list-icon>folder</mat-icon>
-            <div mat-line>{{project.name}}</div>
-          </div>
-        </td>
-      </ng-container>
+    <!-- Project Column -->
+    <ng-container matColumnDef="project">
+      <th mat-header-cell *matHeaderCellDef>Project</th>
+      <td mat-cell *matCellDef="let project">
+        <div class="project-name-container">
+          <mat-icon mat-list-icon>folder</mat-icon>
+          <div mat-line>{{project.name}}</div>
+        </div>
+      </td>
+    </ng-container>
 
-      <!-- Creation date Column -->
-      <ng-container matColumnDef="creation date">
-        <th mat-header-cell *matHeaderCellDef>Creation date</th>
-        <td mat-cell *matCellDef="let project"> {{project.creationDate.toLocaleDateString()}}
-          à {{project.creationDate.toLocaleTimeString()}} </td>
-      </ng-container>
+    <!-- Creation date Column -->
+    <ng-container matColumnDef="creation date">
+      <th mat-header-cell *matHeaderCellDef>Creation date</th>
+      <td mat-cell *matCellDef="let project"> {{project.creationDate.toLocaleDateString()}}
+        at {{project.creationDate.toLocaleTimeString()}} </td>
+    </ng-container>
 
-      <!-- State Column -->
-      <ng-container matColumnDef="state">
-        <th mat-header-cell *matHeaderCellDef>State</th>
-        <td mat-cell *matCellDef="let project">{{project.sync ? project.sync : 'unchecked'}}</td>
-      </ng-container>
+    <!-- Sync state Column -->
+    <ng-container matColumnDef="sync state">
+      <th mat-header-cell *matHeaderCellDef>Sync state</th>
+      <td mat-cell *matCellDef="let project">
+        <ng-container [ngSwitch]="project.sync">
+          <mat-icon class="synchronized" *ngSwitchCase="'synchronized'">cloud_done</mat-icon>
+          <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'">sync_problem</mat-icon>
+          <mat-icon class="cloud" *ngSwitchCase="'cloud'">cloud_download</mat-icon>
+          <mat-icon class="local" *ngSwitchCase="'local'">cloud_upload</mat-icon>
+          <mat-icon class="sync-off" *ngSwitchDefault>cloud_off</mat-icon>
+        </ng-container>
+      </td>
+    </ng-container>
 
-      <!-- Project files -->
-      <ng-container matColumnDef="expandedDetail">
-        <td mat-cell *matCellDef="let project" [attr.colspan]="displayedColumns.length">
-          <div class="project-detail"
-               [@detailExpand]="project == expandedRemoteProject ? 'expanded' : 'collapsed'">
-            <mat-selection-list>
-              <div mat-subheader>Files</div>
-              <mat-list-option *ngFor="let file of project.files">
-                <div class="file-name-container">
-                  <mat-icon mat-list-icon *ngIf="file.sync == null ">sync_disabled</mat-icon>
-                  <mat-icon mat-list-icon *ngIf="file.sync == 'synchronized' ">published_with_changes</mat-icon>
-                  <mat-icon mat-list-icon *ngIf="file.sync == 'unsynchronized' ">sync_problem</mat-icon>
-                  <mat-icon mat-list-icon>insert_drive_file</mat-icon>
-                  <div class="file-information">
-                    <div mat-line>{{file.name}}</div>
-                    <div mat-line>{{file.creationDate.toLocaleDateString()}}
-                      à {{file.creationDate.toLocaleTimeString()}}</div>
-                  </div>
-                </div>
-              </mat-list-option>
-            </mat-selection-list>
-          </div>
-        </td>
-      </ng-container>
+    <!-- Project details -->
 
-    </table>
-    <button mat-raised-button (click)="getRemoteProjects()">IMPORT REMOTE PROJECTS</button>
-  </div>
+    <!-- File Column -->
+    <ng-container matColumnDef="file">
+      <th mat-header-cell *matHeaderCellDef>File</th>
+      <td mat-cell *matCellDef="let project">
+        <div class="project-detail"
+             [@detailExpand]="project == expandedSyncProject ? 'expanded' : 'collapsed'">
+          <mat-list role="list">
+            <mat-list-item role="listitem" *ngFor="let file of project.files">
+              <div class="file-name-container">
+                <mat-icon mat-list-icon>insert_drive_file</mat-icon>
+                <div>{{file.name}}</div>
+              </div>
+            </mat-list-item>
+          </mat-list>
+        </div>
+      </td>
+    </ng-container>
 
-  <!-- Sync button -->
-  <div class="sync-buttons">
-    <button mat-icon-button matTooltip="Synchronize your projects" (click)="synchronizeProjects()"
-            [disabled]="remoteProjects.length == 0 || localProjects.length == 0">
-      <mat-icon>sync</mat-icon>
-    </button>
-  </div>
+    <!-- File creation date Column -->
+    <ng-container matColumnDef="file creation date">
+      <th mat-header-cell *matHeaderCellDef>File creation date</th>
+      <td mat-cell *matCellDef="let project">
+        <div class="project-detail"
+             [@detailExpand]="project == expandedSyncProject ? 'expanded' : 'collapsed'">
+          <mat-list role="list">
+            <mat-list-item role="listitem" *ngFor="let file of project.files">
+              {{file.creationDate.toLocaleDateString()}} at {{file.creationDate.toLocaleTimeString()}}
+            </mat-list-item>
+          </mat-list>
+        </div>
+      </td>
+    </ng-container>
 
-  <!-- Local projects table -->
-  <div class="local-projects-container">
-    <h5>Local projects</h5>
+    <!-- File sync state Column -->
+    <ng-container matColumnDef="file sync state">
+      <th mat-header-cell *matHeaderCellDef>Sync state</th>
+      <td mat-cell *matCellDef="let project">
+        <div class="project-detail"
+             [@detailExpand]="project == expandedSyncProject ? 'expanded' : 'collapsed'">
+          <mat-list role="list">
+            <mat-list-item role="listitem" *ngFor="let file of project.files">
+              <ng-container [ngSwitch]="file.sync">
+                <mat-icon class="synchronized" *ngSwitchCase="'synchronized'">cloud_done</mat-icon>
+                <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'">sync_problem</mat-icon>
+                <mat-icon class="cloud" *ngSwitchCase="'cloud'">cloud_download</mat-icon>
+                <mat-icon class="local" *ngSwitchCase="'local'">cloud_upload</mat-icon>
+                <mat-icon class="sync-off" *ngSwitchDefault>cloud_off</mat-icon>
+              </ng-container>
+            </mat-list-item>
+          </mat-list>
+        </div>
+      </td>
+    </ng-container>
 
-    <table mat-table [dataSource]="localProjects" class="mat-elevation-z8" multiTemplateDataRows>
+  </table>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let project; columns: displayedColumns;"
-          class="project-row"
-          [class.project-expanded-row]="expandedLocalProject === project"
-          (click)="expandedLocalProject = expandedLocalProject === project ? null : project">
-      </tr>
-      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="project-detail-row"></tr>
-      <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [attr.colspan]="displayedColumns.length">No data.</td>
-      </tr>
-
-      <!-- Project Column -->
-      <ng-container matColumnDef="project">
-        <th mat-header-cell *matHeaderCellDef>Project</th>
-        <td mat-cell *matCellDef="let project">
-          <div class="project-name-container">
-            <mat-icon mat-list-icon>folder</mat-icon>
-            <div mat-line>{{project.name}}</div>
-          </div>
-        </td>
-      </ng-container>
-
-      <!-- Creation date Column -->
-      <ng-container matColumnDef="creation date">
-        <th mat-header-cell *matHeaderCellDef>Creation date</th>
-        <td mat-cell *matCellDef="let project"> {{project.creationDate.toLocaleDateString()}}
-          à {{project.creationDate.toLocaleTimeString()}} </td>
-      </ng-container>
-
-      <!-- State Column -->
-      <ng-container matColumnDef="state">
-        <th mat-header-cell *matHeaderCellDef>State</th>
-        <td mat-cell *matCellDef="let project">{{project.sync ? project.sync : 'unchecked'}}</td>
-      </ng-container>
-
-      <!-- Project files -->
-      <ng-container matColumnDef="expandedDetail">
-        <td mat-cell *matCellDef="let project" [attr.colspan]="displayedColumns.length">
-          <div class="project-detail"
-               [@detailExpand]="project == expandedLocalProject ? 'expanded' : 'collapsed'">
-            <mat-selection-list>
-              <div mat-subheader>Files</div>
-              <mat-list-option *ngFor="let file of project.files">
-                <div class="file-name-container">
-                  <mat-icon mat-list-icon *ngIf="file.sync == null ">sync_disabled</mat-icon>
-                  <mat-icon mat-list-icon *ngIf="file.sync == 'synchronized' ">published_with_changes</mat-icon>
-                  <mat-icon mat-list-icon *ngIf="file.sync == 'unsynchronized' ">sync_problem</mat-icon>
-                  <mat-icon mat-list-icon>insert_drive_file</mat-icon>
-                  <div class="file-information">
-                    <div mat-line>{{file.name}}</div>
-                    <div mat-line>{{file.creationDate.toLocaleDateString()}}
-                      à {{file.creationDate.toLocaleTimeString()}}</div>
-                  </div>
-                </div>
-              </mat-list-option>
-            </mat-selection-list>
-          </div>
-        </td>
-      </ng-container>
-
-    </table>
-    <button mat-raised-button (click)="getLocalProjects()">IMPORT LOCAL PROJECTS</button>
-  </div>
+  <button mat-raised-button (click)="getLocalProjects()">SELECT PROJECTS</button>
 
 </div>

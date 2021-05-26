@@ -7,5 +7,5 @@ export interface IFile {
 }
 
 export interface ISyncFile extends IFile {
-  sync: 'synchronized' | 'unsynchronized' | null;
+  sync: 'cloud' | 'local' | 'synchronized' | 'unsynchronized';
 }

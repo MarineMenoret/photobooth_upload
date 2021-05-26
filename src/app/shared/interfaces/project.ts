@@ -9,6 +9,6 @@ export interface IProject {
 }
 
 export interface ISyncProject extends Omit<IProject, 'files'> {
-  sync: 'synchronized' | 'unsynchronized' | null;
+  sync: 'cloud' | 'local' | 'synchronized' | 'unsynchronized';
   files: Array<ISyncFile>
 }
