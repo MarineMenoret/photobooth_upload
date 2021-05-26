@@ -58,24 +58,31 @@
     }
 
     td {
-      mat-icon.synchronized {
-        color: seagreen;
-      }
+      button.sync-button {
+        width: fit-content;
+        height: fit-content;
+        display: flex;
+        line-height: unset;
 
-      mat-icon.unsynchronized {
-        color: red;
-      }
+        mat-icon.synchronized {
+          color: seagreen;
+        }
 
-      mat-icon.cloud {
-        color: dodgerblue;
-      }
+        mat-icon.unsynchronized {
+          color: red;
+        }
 
-      mat-icon.local {
-        color: rebeccapurple;
-      }
+        mat-icon.cloud {
+          color: dodgerblue;
+        }
 
-      mat-icon.sync-off {
-        color: grey;
+        mat-icon.local {
+          color: rebeccapurple;
+        }
+
+        mat-icon.sync-off {
+          color: grey;
+        }
       }
     }
   }

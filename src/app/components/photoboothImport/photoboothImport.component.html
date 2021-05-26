@@ -37,11 +37,13 @@
       <th mat-header-cell *matHeaderCellDef>Sync state</th>
       <td mat-cell *matCellDef="let project">
         <ng-container [ngSwitch]="project.sync">
-          <mat-icon class="synchronized" *ngSwitchCase="'synchronized'">cloud_done</mat-icon>
-          <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'">sync_problem</mat-icon>
-          <mat-icon class="cloud" *ngSwitchCase="'cloud'">cloud_download</mat-icon>
-          <mat-icon class="local" *ngSwitchCase="'local'">cloud_upload</mat-icon>
-          <mat-icon class="sync-off" *ngSwitchDefault>cloud_off</mat-icon>
+          <button mat-icon-button class="sync-button">
+            <mat-icon class="synchronized" *ngSwitchCase="'synchronized'" matTooltip="The whole project is synchronized">cloud_done</mat-icon>
+            <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'" matTooltip="Some files are not synchronized">sync_problem</mat-icon>
+            <mat-icon class="cloud" *ngSwitchCase="'cloud'" matTooltip="Available only on the cloud">cloud_download</mat-icon>
+            <mat-icon class="local" *ngSwitchCase="'local'" matTooltip="Available only locally">cloud_upload</mat-icon>
+            <mat-icon class="sync-off" *ngSwitchDefault matTooltip="Synchronization not yet available">cloud_off</mat-icon>
+          </button>
         </ng-container>
       </td>
     </ng-container>
@@ -90,11 +92,13 @@
           <mat-list role="list">
             <mat-list-item role="listitem" *ngFor="let file of project.files">
               <ng-container [ngSwitch]="file.sync">
-                <mat-icon class="synchronized" *ngSwitchCase="'synchronized'">cloud_done</mat-icon>
-                <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'">sync_problem</mat-icon>
-                <mat-icon class="cloud" *ngSwitchCase="'cloud'">cloud_download</mat-icon>
-                <mat-icon class="local" *ngSwitchCase="'local'">cloud_upload</mat-icon>
-                <mat-icon class="sync-off" *ngSwitchDefault>cloud_off</mat-icon>
+                <button mat-icon-button class="sync-button">
+                  <mat-icon class="synchronized" *ngSwitchCase="'synchronized'" matTooltip="Synchronized file">cloud_done</mat-icon>
+                  <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'" matTooltip="Synchronization conflict">sync_problem</mat-icon>
+                  <mat-icon class="cloud" *ngSwitchCase="'cloud'" matTooltip="Available only on the cloud">cloud_download</mat-icon>
+                  <mat-icon class="local" *ngSwitchCase="'local'" matTooltip="Available only locally">cloud_upload</mat-icon>
+                  <mat-icon class="sync-off" *ngSwitchDefault matTooltip="Synchronization not yet available">cloud_off</mat-icon>
+                </button>
               </ng-container>
             </mat-list-item>
           </mat-list>
