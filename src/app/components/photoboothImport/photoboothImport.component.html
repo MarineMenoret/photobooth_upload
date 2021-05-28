@@ -1,4 +1,9 @@
 <div class="photobooth-sync-container">
+
+  <div class="progress-spinner-container" *ngIf="isLoading">
+    <mat-spinner></mat-spinner>
+  </div>
+
   <h5>Projects synchronization</h5>
 
   <table mat-table [dataSource]="syncProjects" class="mat-elevation-z8" multiTemplateDataRows>
@@ -42,6 +47,7 @@
             <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'" matTooltip="Some files are not synchronized">sync_problem</mat-icon>
             <mat-icon class="cloud" *ngSwitchCase="'cloud'" matTooltip="Available only on the cloud">cloud_download</mat-icon>
             <mat-icon class="local" *ngSwitchCase="'local'" matTooltip="Available only locally">cloud_upload</mat-icon>
+            <mat-spinner class="isSynchronizing" *ngSwitchCase="'isSynchronizing'" matTooltip="Synchronization in progress..." diameter="24"></mat-spinner>
             <mat-icon class="sync-off" *ngSwitchDefault matTooltip="Synchronization not yet available">cloud_off</mat-icon>
           </button>
         </ng-container>
@@ -96,7 +102,8 @@
                   <mat-icon class="synchronized" *ngSwitchCase="'synchronized'" matTooltip="Synchronized file">cloud_done</mat-icon>
                   <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'" matTooltip="Synchronization conflict">sync_problem</mat-icon>
                   <mat-icon class="cloud" *ngSwitchCase="'cloud'" matTooltip="Available only on the cloud">cloud_download</mat-icon>
-                  <mat-icon class="local" *ngSwitchCase="'local'" matTooltip="Available only locally">cloud_upload</mat-icon>
+                  <mat-icon class="local" *ngSwitchCase="'local'" matTooltip="Available only locally" (click)="uploadFile(project, file)">cloud_upload</mat-icon>
+                  <mat-spinner class="isSynchronizing" *ngSwitchCase="'isSynchronizing'" matTooltip="Synchronization in progress..." diameter="24"></mat-spinner>
                   <mat-icon class="sync-off" *ngSwitchDefault matTooltip="Synchronization not yet available">cloud_off</mat-icon>
                 </button>
               </ng-container>

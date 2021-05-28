@@ -4,7 +4,8 @@ import {SyncService} from "../../services/sync/sync.service";
 import {Subject, Subscription} from "rxjs";
 import {ElectronService} from "../../core/services";
 import {animate, state, style, transition, trigger} from "@angular/animations";
-import {ISyncFile} from "../../shared/interfaces/file";
+import {IFile, ISyncFile} from "../../shared/interfaces/file";
+import {MatSnackBar} from "@angular/material/snack-bar";
 
 @Component({
   selector: "photoboothImport",
@@ -22,14 +23,17 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   subscriptions: Array<Subscription>;
   displayedProjectColumns: Array<string>;
   displayedFileColumns: Array<string>;
+  projectsDirectory: string;
   remoteProjects: Array<IProject>;
   localProjects: Array<IProject>;
   syncProjects: Array<ISyncProject>;
   syncProjects$: Subject<Array<ISyncProject>>;
   expandedSyncProject: ISyncProject | null;
+  isLoading: boolean;
 
   constructor(private syncService: SyncService,
-              private electronService: ElectronService) {
+              private electronService: ElectronService,
+              private snackBar: MatSnackBar) {
   }
 
   ngOnInit(): void {
@@ -39,11 +43,13 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   initialize(): void {
     this.subscriptions = new Array<Subscription>();
     this.displayedProjectColumns = ['project', 'creation date', 'sync state'];
-    this.displayedFileColumns =['file', 'file creation date', 'file sync state'];
+    this.displayedFileColumns = ['file', 'file creation date', 'file sync state'];
+    this.projectsDirectory = "";
     this.remoteProjects = new Array<IProject>();
     this.localProjects = new Array<IProject>();
     this.syncProjects = new Array<ISyncProject>();
     this.syncProjects$ = new Subject<Array<ISyncProject>>();
+    this.isLoading = false;
 
     this.subscriptions.push(
       this.syncService.localProjects$.subscribe((projects) => {
@@ -62,6 +68,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.syncProjects$.subscribe((projects) => {
         this.syncProjects = projects;
+        this.isLoading = false;
       })
     );
   }
@@ -78,8 +85,9 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
     })
       .then(async directory => {
         if (!directory.canceled) {
-          const directoryPath = directory.filePaths[0];
-          await this.syncService.getLocalProjects(directoryPath);
+          this.isLoading = true;
+          this.projectsDirectory = directory.filePaths[0];
+          await this.syncService.getLocalProjects(this.projectsDirectory);
         }
       })
       .catch(error => console.log((error)));
@@ -183,19 +191,51 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
 
     projects.forEach(syncProject => {
       if (syncProject.sync == null) {
-        if (syncProject.files.every(file => file.sync == 'synchronized')) {
-          syncProject.sync = 'synchronized';
-        } else if (syncProject.files.every(file => file.sync == 'cloud')) {
-          syncProject.sync = 'cloud';
-        } else if (syncProject.files.every(file => file.sync == 'local')) {
-          syncProject.sync = 'local';
-        } else {
-          syncProject.sync = 'unsynchronized';
-        }
+        this.updateProjectSynchronizationState(syncProject);
       }
     });
 
     this.syncProjects$.next(projects);
+  }
+
+  uploadFile(project: ISyncProject, file: ISyncFile): void {
+    const oldSyncState = file.sync;
+    file.sync = 'isSynchronizing';
+
+    const fileToUpload: IFile = {
+      name: file.name,
+      creationDate: file.creationDate,
+      path: file.path,
+      size: file.size,
+      sha256: file.sha256
+    };
+
+    this.syncService.uploadFile(this.projectsDirectory, fileToUpload)
+      .then(() => {
+        file.sync = 'synchronized';
+        this.updateProjectSynchronizationState(project);
+      })
+      .catch(error => {
+        file.sync = oldSyncState;
+        this.showSnackBar('Error: Synchronisation failed, try again!');
+        console.log(error);
+      });
+  }
+
+  updateProjectSynchronizationState(syncProject: ISyncProject): void {
+    if (syncProject.files.every(file => file.sync == 'synchronized')) {
+      syncProject.sync = 'synchronized';
+    } else if (syncProject.files.every(file => file.sync == 'cloud')) {
+      syncProject.sync = 'cloud';
+    } else if (syncProject.files.every(file => file.sync == 'local')) {
+      syncProject.sync = 'local';
+    } else {
+      syncProject.sync = 'unsynchronized';
+    }
+  }
+
+  showSnackBar(message: string): void {
+    this.snackBar.open(message, null, {duration: 2000});
   }
 
   ngOnDestroy(): void {

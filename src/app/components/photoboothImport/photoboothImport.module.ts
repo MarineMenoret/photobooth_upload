@@ -9,6 +9,8 @@ import {SharedModule} from '../../shared/shared.module';
 
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 import {MatTooltipModule} from "@angular/material/tooltip";
+import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
+import {MatSnackBarModule} from "@angular/material/snack-bar";
 
 @NgModule({
   declarations: [PhotoboothImportComponent],
@@ -18,7 +20,9 @@ import {MatTooltipModule} from "@angular/material/tooltip";
     CommonModule,
     SharedModule,
     BrowserAnimationsModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule
   ],
   exports: [
     PhotoboothImportComponent
