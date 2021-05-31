@@ -1,11 +1,14 @@
 import {Component, OnDestroy, OnInit} from "@angular/core";
 import {IProject, ISyncProject} from "../../shared/interfaces/project";
 import {SyncService} from "../../services/sync/sync.service";
-import {Subject, Subscription} from "rxjs";
+import {Observable, Subject, Subscription} from "rxjs";
 import {ElectronService} from "../../core/services";
 import {animate, state, style, transition, trigger} from "@angular/animations";
 import {IFile, ISyncFile} from "../../shared/interfaces/file";
 import {MatSnackBar} from "@angular/material/snack-bar";
+import {MatDialog} from "@angular/material/dialog";
+import {SyncDialogComponent} from "../sync-dialog/sync-dialog.component";
+import {DialogData} from "../../shared/interfaces/dialog-data";
 
 @Component({
   selector: "photoboothImport",
@@ -33,7 +36,8 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
 
   constructor(private syncService: SyncService,
               private electronService: ElectronService,
-              private snackBar: MatSnackBar) {
+              private snackBar: MatSnackBar,
+              public dialog: MatDialog) {
   }
 
   ngOnInit(): void {
@@ -61,7 +65,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.syncService.remoteProjects$.subscribe((projects) => {
         this.remoteProjects = projects;
-        this.synchronizeProjects();
+        this.compareProjects();
       })
     );
 
@@ -93,7 +97,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
       .catch(error => console.log((error)));
   }
 
-  synchronizeProjects(): void {
+  compareProjects(): void {
     const projects = new Array<ISyncProject>();
 
     this.remoteProjects.forEach((remoteProject) => {
@@ -198,28 +202,112 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
     this.syncProjects$.next(projects);
   }
 
-  uploadFile(project: ISyncProject, file: ISyncFile): void {
-    const oldSyncState = file.sync;
-    file.sync = 'isSynchronizing';
+  synchronizeProject(project: ISyncProject, file?: ISyncFile): void {
+    switch (project.sync) {
+      case "local": {
+        let dialogData: DialogData;
 
-    const fileToUpload: IFile = {
-      name: file.name,
-      creationDate: file.creationDate,
-      path: file.path,
-      size: file.size,
-      sha256: file.sha256
-    };
+        if (file) {
+          dialogData = {
+            title: "File upload",
+            content: `The "${project.name}" project does not yet exist in the cloud. This will upload the entire project. Do you want to continue?`,
+            action: "Upload"
+          };
 
-    this.syncService.uploadFile(this.projectsDirectory, fileToUpload)
-      .then(() => {
-        file.sync = 'synchronized';
-        this.updateProjectSynchronizationState(project);
-      })
-      .catch(error => {
-        file.sync = oldSyncState;
-        this.showSnackBar('Error: Synchronisation failed, try again!');
-        console.log(error);
-      });
+        } else {
+          dialogData = {
+            title: "Project upload",
+            content: `You are about to upload the entire "${project.name}" project. Do you want to continue?`,
+            action: "Upload"
+          };
+        }
+
+        const dialogSubscription = this.openDialog(dialogData)
+          .subscribe(userAction => {
+            if (userAction) {
+              project.sync = 'isSynchronizing';
+              project.files.forEach(file => file.sync = 'isSynchronizing');
+
+              this.syncService.uploadProject(this.projectsDirectory, project)
+                .then(() => {
+                  project.sync = 'synchronized';
+                  project.files.forEach(file => file.sync = 'synchronized');
+                })
+                .catch(error => {
+                  project.sync = 'local';
+                  project.files.forEach(file => file.sync = 'local');
+                  this.showSnackBar('Error: Synchronisation failed, try again!');
+                  console.log(error);
+                });
+            }
+            dialogSubscription.unsubscribe();
+          });
+        break;
+      }
+      case "cloud": {
+        if (file) {
+          console.log("File: cloud");
+        } else {
+          console.log("Project: cloud");
+        }
+        break;
+      }
+      case "unsynchronized": {
+        if (file) {
+          switch (file.sync) {
+            case "local": {
+              file.sync = 'isSynchronizing';
+
+              const fileToUpload: IFile = {
+                name: file.name,
+                creationDate: file.creationDate,
+                path: file.path,
+                size: file.size,
+                sha256: file.sha256
+              };
+
+              this.syncService.uploadFile(this.projectsDirectory, fileToUpload)
+                .then(() => {
+                  file.sync = 'synchronized';
+                  this.updateProjectSynchronizationState(project);
+                })
+                .catch(error => {
+                  file.sync = 'local';
+                  this.showSnackBar('Error: Synchronisation failed, try again!');
+                  console.log(error);
+                });
+              break;
+            }
+            case "cloud": {
+              break;
+            }
+            case "unsynchronized": {
+              break;
+            }
+            case "synchronized": {
+              break;
+            }
+            default: {
+              console.log("Synchronization not yet available");
+            }
+          }
+        } else {
+          console.log("Project: unsynchronized");
+        }
+        break;
+      }
+      case "synchronized": {
+        if (file) {
+          console.log("File: synchronized");
+        } else {
+          console.log("Project: synchronized");
+        }
+        break;
+      }
+      default: {
+        console.log("Synchronization not yet available");
+      }
+    }
   }
 
   updateProjectSynchronizationState(syncProject: ISyncProject): void {
@@ -236,6 +324,11 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
 
   showSnackBar(message: string): void {
     this.snackBar.open(message, null, {duration: 2000});
+  }
+
+  openDialog(data: DialogData): Observable<boolean> {
+    const dialogRef = this.dialog.open(SyncDialogComponent, {data: data});
+    return dialogRef.afterClosed();
   }
 
   ngOnDestroy(): void {

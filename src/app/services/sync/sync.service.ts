@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
-import {AngularFirestore, AngularFirestoreCollection} from "@angular/fire/firestore";
-import {IProject} from "../../shared/interfaces/project";
+import {AngularFirestore, AngularFirestoreCollection, DocumentReference} from "@angular/fire/firestore";
+import {IProject, ISyncProject} from "../../shared/interfaces/project";
 import {Subject} from "rxjs";
 import firebase from "firebase";
 import Timestamp = firebase.firestore.Timestamp;
@@ -10,6 +10,7 @@ import {AngularFireStorage} from "@angular/fire/storage";
 import TaskState = firebase.storage.TaskState;
 import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
 import {IFile} from "../../shared/interfaces/file";
+import Reference = firebase.storage.Reference;
 
 @Injectable({
   providedIn: 'root'
@@ -70,11 +71,12 @@ export class SyncService {
 
       if (this.electronService.fs.lstatSync(childPath).isDirectory()) {
         this.directoryTreeService.initialize();
+        this.directoryTreeService.directory = child;
 
         const project: IProject = {
           name: child,
           creationDate: this.electronService.fs.lstatSync(childPath).birthtime,
-          directoryTree: await this.directoryTreeService.buildTree(childPath),
+          directoryTree: this.directoryTreeService.buildRelativeTree(await this.directoryTreeService.buildTree(childPath)),
           files: this.directoryTreeService.getFiles().map(file => {
             const pathSegments = file.path.split(this.electronService.path.sep);
             const relativePathSegments = pathSegments.slice(pathSegments.indexOf(child));
@@ -101,7 +103,7 @@ export class SyncService {
         if (error) {
           reject(error);
         } else {
-          this.updateProjectStructure(file)
+          this.updateProjectStructure(projectsDirectory, file)
             .then(() => {
               this.storage.upload(file.path, data)
                 .then(uploadTaskSnapShot => {
@@ -109,11 +111,8 @@ export class SyncService {
                     case TaskState.SUCCESS:
                       resolve();
                       break;
-                    case TaskState.CANCELED:
-                      reject(new Error('File upload canceled!'));
-                      break;
                     case TaskState.ERROR:
-                      reject(new Error('File upload failed!'));
+                      reject(new Error(`The upload of the file "${file.name}" failed!`));
                       break;
                   }
                 })
@@ -125,14 +124,14 @@ export class SyncService {
     });
   }
 
-  updateProjectStructure(file: IFile): Promise<void> {
+  updateProjectStructure(projectsDirectory: string, file: IFile): Promise<void> {
     const pathSegments = file.path.split(this.electronService.path.sep);
     const projectName = pathSegments[0];
     return new Promise<void>((resolve, reject) => {
       this.projectsCollection.ref.where('name', '==', projectName).get()
         .then((querySnapshot) => {
           if (querySnapshot.empty) {
-            // TODO create a new project
+            reject(new Error('Project not found!'));
           } else if (querySnapshot.size == 1) {
             const updatedDirectoryTree = querySnapshot.docs[0].data().directoryTree;
             this.updateDirectoryTree(updatedDirectoryTree, pathSegments, file.path);
@@ -178,5 +177,81 @@ export class SyncService {
         this.updateDirectoryTree(directoryTree.children[childDirectoryIndex], pathSegments, filePath);
       }
     }
+  }
+
+  uploadProject(projectsDirectory: string, project: ISyncProject): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.saveProjectStructure(project)
+        .then(async projectRef => {
+          console.log(`Project structure has been successfully saved with ID: ${projectRef.id}`);
+          const uploadedFilesRef = new Array<Reference>();
+
+          for (const file of project.files) {
+            const fullPath = this.electronService.path.join(projectsDirectory, file.path);
+            let data: Buffer;
+
+            // Reading project files
+            try {
+              data = this.electronService.fs.readFileSync(fullPath);
+            } catch (error) {
+              // If an error occurred while reading the project files, restore the database to its original state and exit from the for loop.
+              await projectRef.delete();
+              for (const fileRef of uploadedFilesRef) {
+                await fileRef.delete();
+              }
+              reject(error);
+              break;
+            }
+
+            // Uploading project files
+            if (data) {
+              try {
+                const uploadTaskSnapShot = await this.storage.upload(file.path, data);
+                switch (uploadTaskSnapShot.state) {
+                  case TaskState.SUCCESS:
+                    uploadedFilesRef.push(uploadTaskSnapShot.ref);
+                    break;
+                  case TaskState.ERROR:
+                    await Promise.reject(new Error(`The upload of the file "${file.name}" failed!`));
+                    break;
+                }
+              } catch (error) {
+                // If an error occurred while uploading the project files, restore the database to its original state and exit from the for loop.
+                await projectRef.delete();
+                for (const fileRef of uploadedFilesRef) {
+                  await fileRef.delete();
+                }
+                reject(error);
+                break;
+              }
+            }
+          }
+
+          if (uploadedFilesRef.length == project.files.length) {
+            resolve();
+          } else {
+            reject(new Error('Some files were not uploaded correctly!'));
+          }
+        })
+        .catch(error => reject(error));
+    });
+  }
+
+  saveProjectStructure(project: ISyncProject): Promise<DocumentReference<IProject>> {
+    const projectToSave: IProject = {
+      name: project.name,
+      creationDate: project.creationDate,
+      directoryTree: project.directoryTree,
+      files: project.files.map(syncFile => {
+        return {
+          name: syncFile.name,
+          creationDate: syncFile.creationDate,
+          path: syncFile.path,
+          sha256: syncFile.sha256,
+          size: syncFile.size
+        };
+      })
+    };
+    return this.projectsCollection.add(projectToSave);
   }
 }
