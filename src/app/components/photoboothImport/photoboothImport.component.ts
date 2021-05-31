@@ -278,13 +278,26 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
             action: "Download"
           };
 
-          const dialogSubscription = this.openDialog(dialogData)
-            .subscribe(userAction => {
+          this.openDialog(dialogData).toPromise()
+            .then(async userAction => {
+              project.sync = 'isSynchronizing';
+              project.files.forEach(file => file.sync = 'isSynchronizing');
+
               if (userAction) {
-                this.syncService.downloadProject(project);
+                for (const file of project.files) {
+                  try {
+                    await this.syncService.downloadFile(this.projectsDirectory, file);
+                    file.sync = 'synchronized';
+                  } catch (error) {
+                    file.sync = 'cloud';
+                    this.showSnackBar(`The download of the file "${file.name}" failed!`);
+                    console.log(error);
+                  }
+                }
+                this.updateProjectSynchronizationState(project);
               }
-              dialogSubscription.unsubscribe();
-            });
+            })
+            .catch(error => console.log(error));
         }
         break;
       }

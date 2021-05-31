@@ -255,16 +255,6 @@ export class SyncService {
     return this.projectsCollection.add(projectToSave);
   }
 
-  downloadProject(project: ISyncProject): void {
-    this.storage.ref(project.name).listAll().toPromise()
-      .then((result) => {
-        // TODO complete this function
-        console.log(result.items);
-        console.log(result.prefixes);
-      })
-      .catch(error => console.log(error));
-  }
-
   downloadFile(projectsDirectory: string, file: ISyncFile): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.storage.ref(file.path).getDownloadURL().toPromise()
