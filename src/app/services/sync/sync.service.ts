@@ -9,7 +9,7 @@ import {DirectoryTreeService} from "../directory-tree/directory-tree.service";
 import {AngularFireStorage} from "@angular/fire/storage";
 import TaskState = firebase.storage.TaskState;
 import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
-import {IFile} from "../../shared/interfaces/file";
+import {IFile, ISyncFile} from "../../shared/interfaces/file";
 import Reference = firebase.storage.Reference;
 
 @Injectable({
@@ -253,5 +253,51 @@ export class SyncService {
       })
     };
     return this.projectsCollection.add(projectToSave);
+  }
+
+  downloadProject(project: ISyncProject): void {
+    this.storage.ref(project.name).listAll().toPromise()
+      .then((result) => {
+        // TODO complete this function
+        console.log(result.items);
+        console.log(result.prefixes);
+      })
+      .catch(error => console.log(error));
+  }
+
+  downloadFile(projectsDirectory: string, file: ISyncFile): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.storage.ref(file.path).getDownloadURL().toPromise()
+        .then((url) => {
+          const fileFullPath = this.electronService.path.join(projectsDirectory, file.path);
+          const fileDirectory = this.electronService.path.dirname(fileFullPath);
+
+          // Create a folder recursively if it does not exist..
+          try {
+            if (!this.electronService.fs.existsSync(fileDirectory)) {
+              this.electronService.fs.mkdirSync(fileDirectory, {recursive: true});
+            }
+          } catch (error) {
+            reject(error);
+            return;
+          }
+
+          const req = this.electronService.request({
+            method: 'GET',
+            uri: url
+          });
+
+          const out = this.electronService.fs.createWriteStream(fileFullPath);
+          req.pipe(out);
+
+          req.on('end', () => {
+            resolve();
+            console.log(`"${file.name}" file successfully downloaded`);
+          });
+
+          req.on('error', (error) => reject(error));
+        })
+        .catch(error => reject(error));
+    });
   }
 }

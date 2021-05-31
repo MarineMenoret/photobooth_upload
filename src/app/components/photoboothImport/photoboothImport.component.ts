@@ -213,7 +213,6 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
             content: `The "${project.name}" project does not yet exist in the cloud. This will upload the entire project. Do you want to continue?`,
             action: "Upload"
           };
-
         } else {
           dialogData = {
             title: "Project upload",
@@ -245,10 +244,47 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
         break;
       }
       case "cloud": {
+        let dialogData: DialogData;
+
         if (file) {
-          console.log("File: cloud");
+          dialogData = {
+            title: "File download",
+            content: `The "${project.name}" project does not yet exist locally. This will create it. Do you want to continue?`,
+            action: "Download"
+          };
+
+          const dialogSubscription = this.openDialog(dialogData)
+            .subscribe(userAction => {
+              if (userAction) {
+                file.sync = 'isSynchronizing';
+
+                this.syncService.downloadFile(this.projectsDirectory, file)
+                  .then(() => {
+                    file.sync = 'synchronized';
+                    this.updateProjectSynchronizationState(project);
+                  })
+                  .catch(error => {
+                    file.sync = 'cloud';
+                    this.showSnackBar('Error: Synchronisation failed, try again!');
+                    console.log(error);
+                  });
+              }
+              dialogSubscription.unsubscribe();
+            });
         } else {
-          console.log("Project: cloud");
+          dialogData = {
+            title: "Project download",
+            content: `You are about to download the entire "${project.name}" project. Do you want to continue?`,
+            action: "Download"
+          };
+
+          const dialogSubscription = this.openDialog(dialogData)
+            .subscribe(userAction => {
+              if (userAction) {
+                this.syncService.downloadProject(project);
+              }
+              dialogSubscription.unsubscribe();
+            });
         }
         break;
       }
@@ -279,6 +315,18 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
               break;
             }
             case "cloud": {
+              file.sync = 'isSynchronizing';
+
+              this.syncService.downloadFile(this.projectsDirectory, file)
+                .then(() => {
+                  file.sync = 'synchronized';
+                  this.updateProjectSynchronizationState(project);
+                })
+                .catch(error => {
+                  file.sync = 'cloud';
+                  this.showSnackBar('Error: Synchronisation failed, try again!');
+                  console.log(error);
+                });
               break;
             }
             case "unsynchronized": {
