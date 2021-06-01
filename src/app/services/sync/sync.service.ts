@@ -9,7 +9,7 @@ import {DirectoryTreeService} from "../directory-tree/directory-tree.service";
 import {AngularFireStorage} from "@angular/fire/storage";
 import TaskState = firebase.storage.TaskState;
 import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
-import {IFile, ISyncFile} from "../../shared/interfaces/file";
+import {IFile} from "../../shared/interfaces/file";
 import Reference = firebase.storage.Reference;
 
 @Injectable({
@@ -95,7 +95,7 @@ export class SyncService {
     this.localProjects$.next(projects);
   }
 
-  uploadFile(projectsDirectory: string, file: IFile): Promise<void> {
+  uploadFile(projectsDirectory: string, file: IFile, isAConflictFile?: boolean): Promise<void> {
     const fullPath = this.electronService.path.join(projectsDirectory, file.path);
 
     return new Promise<void>((resolve, reject) => {
@@ -103,7 +103,7 @@ export class SyncService {
         if (error) {
           reject(error);
         } else {
-          this.updateProjectStructure(projectsDirectory, file)
+          this.updateProjectStructure(projectsDirectory, file, isAConflictFile)
             .then(() => {
               this.storage.upload(file.path, data)
                 .then(uploadTaskSnapShot => {
@@ -124,7 +124,7 @@ export class SyncService {
     });
   }
 
-  updateProjectStructure(projectsDirectory: string, file: IFile): Promise<void> {
+  updateProjectStructure(projectsDirectory: string, file: IFile, isAConflictFile?: boolean): Promise<void> {
     const pathSegments = file.path.split(this.electronService.path.sep);
     const projectName = pathSegments[0];
     return new Promise<void>((resolve, reject) => {
@@ -134,10 +134,18 @@ export class SyncService {
             reject(new Error('Project not found!'));
           } else if (querySnapshot.size == 1) {
             const updatedDirectoryTree = querySnapshot.docs[0].data().directoryTree;
-            this.updateDirectoryTree(updatedDirectoryTree, pathSegments, file.path);
-
             const updatedFiles = querySnapshot.docs[0].data().files;
-            updatedFiles.push(file);
+
+            if (isAConflictFile) {
+              const index = updatedFiles.findIndex(updatedFile => updatedFile.name == file.name && updatedFile.path == file.path);
+
+              if (index !== -1) {
+                updatedFiles[index] = file;
+              }
+            } else {
+              this.updateDirectoryTree(updatedDirectoryTree, pathSegments, file.path);
+              updatedFiles.push(file);
+            }
 
             querySnapshot.docs[0].ref.update(
               {
@@ -255,7 +263,7 @@ export class SyncService {
     return this.projectsCollection.add(projectToSave);
   }
 
-  downloadFile(projectsDirectory: string, file: ISyncFile): Promise<void> {
+  downloadFile(projectsDirectory: string, file: IFile): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.storage.ref(file.path).getDownloadURL().toPromise()
         .then((url) => {

@@ -204,7 +204,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
 
   synchronizeProject(project: ISyncProject, file?: ISyncFile, event?: MouseEvent): void {
     // Prevent project expansion / collapse when we click on a sync icon.
-    if(event) {
+    if (event) {
       event.stopPropagation();
     }
 
@@ -348,6 +348,65 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
               break;
             }
             case "unsynchronized": {
+              const remoteFile = this.remoteProjects
+                .find(remoteProject => remoteProject.name = project.name).files
+                .find(remoteFile => remoteFile.name == file.name);
+
+              const localFile = this.localProjects
+                .find(localProject => localProject.name = project.name).files
+                .find(localFile => localFile.name == file.name);
+
+              const conflictingFiles = [
+                `Server version: ${remoteFile.name} ; created: ${remoteFile.creationDate.toLocaleDateString()} at ${remoteFile.creationDate.toLocaleTimeString()}`,
+                `Local version: ${localFile.name} ; created: ${localFile.creationDate.toLocaleDateString()} at ${localFile.creationDate.toLocaleTimeString()}`
+              ];
+
+              const dialogData: DialogData = {
+                title: "Synchronization conflict",
+                content: "A synchronization conflict is detected. You must resolve it manually by choosing the version of the file to keep.",
+                action: "Synchronize",
+                conflictingFiles: conflictingFiles
+              };
+
+              this.openDialog(dialogData).toPromise()
+                .then(userAction => {
+                  if (userAction) {
+                    if (conflictingFiles.indexOf(userAction as unknown as string) == 0) {
+                      file.sync = 'isSynchronizing';
+
+                      this.syncService.downloadFile(this.projectsDirectory, remoteFile)
+                        .then(() => {
+                          file.creationDate = remoteFile.creationDate;
+                          file.size = remoteFile.size;
+                          file.sha256 = remoteFile.sha256;
+                          file.sync = 'synchronized';
+                          this.updateProjectSynchronizationState(project);
+                        })
+                        .catch(error => {
+                          file.sync = 'unsynchronized';
+                          this.showSnackBar('Error: Synchronisation failed, try again!');
+                          console.log(error);
+                        });
+                    } else {
+                      file.sync = 'isSynchronizing';
+
+                      this.syncService.uploadFile(this.projectsDirectory, localFile, true)
+                        .then(() => {
+                          file.creationDate = localFile.creationDate;
+                          file.size = localFile.size;
+                          file.sha256 = localFile.sha256;
+                          file.sync = 'synchronized';
+                          this.updateProjectSynchronizationState(project);
+                        })
+                        .catch(error => {
+                          file.sync = 'unsynchronized';
+                          this.showSnackBar('Error: Synchronisation failed, try again!');
+                          console.log(error);
+                        });
+                    }
+                  }
+                })
+                .catch(error => console.log(error));
               break;
             }
             case "synchronized": {

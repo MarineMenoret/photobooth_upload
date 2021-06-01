@@ -8,6 +8,8 @@ import {DialogData} from "../../shared/interfaces/dialog-data";
   styleUrls: ['./sync-dialog.component.scss']
 })
 export class SyncDialogComponent {
+  selectedFile: string;
+
   constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) {
   }
 }
