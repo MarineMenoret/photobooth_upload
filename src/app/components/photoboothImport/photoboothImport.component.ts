@@ -1,5 +1,5 @@
 import {Component, OnDestroy, OnInit} from "@angular/core";
-import {IProject, ISyncProject} from "../../shared/interfaces/project";
+import {IProject, ISyncProject, SyncState} from "../../shared/interfaces/project";
 import {SyncService} from "../../services/sync/sync.service";
 import {Observable, Subject, Subscription} from "rxjs";
 import {ElectronService} from "../../core/services";
@@ -418,7 +418,56 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
             }
           }
         } else {
-          console.log("Project: unsynchronized");
+          const dialogData: DialogData = {
+            title: "Project synchronization",
+            content: `You are about to synchronize the entire "${project.name}" project. Do you want to continue?`,
+            action: "Synchronize"
+          };
+
+          this.openDialog(dialogData).toPromise()
+            .then(async userAction => {
+              if (userAction) {
+                project.sync = 'isSynchronizing';
+
+                for (const file of project.files) {
+                  if (file.sync == 'cloud') {
+                    file.sync = 'isSynchronizing';
+                    try {
+                      await this.syncService.downloadFile(this.projectsDirectory, file);
+                      file.sync = 'synchronized';
+                    } catch (error) {
+                      file.sync = 'cloud';
+                      this.showSnackBar(`The download of the file "${file.name}" failed!`);
+                      console.log(error);
+                    }
+                  } else if (file.sync == 'local') {
+                    file.sync = 'isSynchronizing';
+                    try {
+                      const fileToUpload: IFile = {
+                        name: file.name,
+                        creationDate: file.creationDate,
+                        path: file.path,
+                        size: file.size,
+                        sha256: file.sha256
+                      };
+
+                      await this.syncService.uploadFile(this.projectsDirectory, fileToUpload);
+                      file.sync = 'synchronized';
+                    } catch (error) {
+                      file.sync = 'local';
+                      this.showSnackBar(`The upload of the file "${file.name}" failed!`);
+                      console.log(error);
+                    }
+                  }
+                }
+                this.updateProjectSynchronizationState(project);
+
+                if (project.sync as SyncState == 'unsynchronized') {
+                  this.showSnackBar('Some synchronization conflicts have been detected, you must resolve them manually.');
+                }
+              }
+            })
+            .catch(error => console.log(error));
         }
         break;
       }
