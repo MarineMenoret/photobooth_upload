@@ -1,6 +1,8 @@
 import {IDirectoryTree} from "./directory-tree";
 import {IFile, ISyncFile} from "./file";
 
+export type SyncState = 'cloud' | 'local' | 'synchronized' | 'unsynchronized' | 'isSynchronizing';
+
 export interface IProject {
   name: string;
   creationDate: Date;
@@ -9,6 +11,6 @@ export interface IProject {
 }
 
 export interface ISyncProject extends Omit<IProject, 'files'> {
-  sync: 'cloud' | 'local' | 'synchronized' | 'unsynchronized' | 'isSynchronizing';
+  sync: SyncState;
   files: Array<ISyncFile>
 }

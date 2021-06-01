@@ -1,3 +1,5 @@
+import {SyncState} from "./project";
+
 export interface IFile {
   name: string;
   creationDate: Date;
@@ -7,5 +9,5 @@ export interface IFile {
 }
 
 export interface ISyncFile extends IFile {
-  sync: 'cloud' | 'local' | 'synchronized' | 'unsynchronized' | 'isSynchronizing';
+  sync: SyncState;
 }
