@@ -43,12 +43,12 @@
       <td mat-cell *matCellDef="let project">
         <ng-container [ngSwitch]="project.sync">
           <button mat-icon-button class="sync-button">
-            <mat-icon class="synchronized" *ngSwitchCase="'synchronized'" matTooltip="The whole project is synchronized" (click)="synchronizeProject(project)">cloud_done</mat-icon>
-            <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'" matTooltip="Some files are not synchronized" (click)="synchronizeProject(project)">sync_problem</mat-icon>
-            <mat-icon class="cloud" *ngSwitchCase="'cloud'" matTooltip="Available only on the cloud" (click)="synchronizeProject(project)">cloud_download</mat-icon>
-            <mat-icon class="local" *ngSwitchCase="'local'" matTooltip="Available only locally" (click)="synchronizeProject(project)">cloud_upload</mat-icon>
+            <mat-icon class="synchronized" *ngSwitchCase="'synchronized'" matTooltip="The whole project is synchronized" (click)="synchronizeProject(project, null, $event)">cloud_done</mat-icon>
+            <mat-icon class="unsynchronized" *ngSwitchCase="'unsynchronized'" matTooltip="Some files are not synchronized" (click)="synchronizeProject(project, null, $event)">sync_problem</mat-icon>
+            <mat-icon class="cloud" *ngSwitchCase="'cloud'" matTooltip="Available only on the cloud" (click)="synchronizeProject(project, null, $event)">cloud_download</mat-icon>
+            <mat-icon class="local" *ngSwitchCase="'local'" matTooltip="Available only locally" (click)="synchronizeProject(project, null, $event)">cloud_upload</mat-icon>
             <mat-spinner class="isSynchronizing" *ngSwitchCase="'isSynchronizing'" matTooltip="Synchronization in progress..." diameter="24"></mat-spinner>
-            <mat-icon class="sync-off" *ngSwitchDefault matTooltip="Synchronization not yet available" (click)="synchronizeProject(project)">cloud_off</mat-icon>
+            <mat-icon class="sync-off" *ngSwitchDefault matTooltip="Synchronization not yet available" (click)="synchronizeProject(project, null, $event)">cloud_off</mat-icon>
           </button>
         </ng-container>
       </td>

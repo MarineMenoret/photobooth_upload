@@ -202,7 +202,12 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
     this.syncProjects$.next(projects);
   }
 
-  synchronizeProject(project: ISyncProject, file?: ISyncFile): void {
+  synchronizeProject(project: ISyncProject, file?: ISyncFile, event?: MouseEvent): void {
+    // Prevent project expansion / collapse when we click on a sync icon.
+    if(event) {
+      event.stopPropagation();
+    }
+
     switch (project.sync) {
       case "local": {
         let dialogData: DialogData;
@@ -280,10 +285,10 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
 
           this.openDialog(dialogData).toPromise()
             .then(async userAction => {
-              project.sync = 'isSynchronizing';
-              project.files.forEach(file => file.sync = 'isSynchronizing');
-
               if (userAction) {
+                project.sync = 'isSynchronizing';
+                project.files.forEach(file => file.sync = 'isSynchronizing');
+
                 for (const file of project.files) {
                   try {
                     await this.syncService.downloadFile(this.projectsDirectory, file);
@@ -346,10 +351,11 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
               break;
             }
             case "synchronized": {
+              this.showSnackBar('This file is already synchronized.');
               break;
             }
             default: {
-              console.log("Synchronization not yet available");
+              this.showSnackBar("Synchronization not yet available.");
             }
           }
         } else {
@@ -359,14 +365,14 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
       }
       case "synchronized": {
         if (file) {
-          console.log("File: synchronized");
+          this.showSnackBar('This file is already synchronized.');
         } else {
-          console.log("Project: synchronized");
+          this.showSnackBar('This project is already synchronized.');
         }
         break;
       }
       default: {
-        console.log("Synchronization not yet available");
+        this.showSnackBar("Synchronization not yet available.");
       }
     }
   }
