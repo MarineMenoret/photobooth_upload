@@ -1,12 +1,12 @@
 <h2 mat-dialog-title>{{data.title}}</h2>
 <mat-dialog-content>
   <p>{{data.content}}</p>
-  <mat-radio-group class="radio-group" *ngIf="data.action == 'Synchronize'" [(ngModel)]="selectedFile">
+  <mat-radio-group class="radio-group" *ngIf="data.conflictingFiles" [(ngModel)]="selectedFile">
     <mat-radio-button class="radio-button" *ngFor="let file of data.conflictingFiles" [value]="file">{{file}}</mat-radio-button>
   </mat-radio-group>
 </mat-dialog-content>
 <mat-dialog-actions [attr.align]="'end'">
   <button mat-button [mat-dialog-close]="false">Cancel</button>
-  <button mat-button [mat-dialog-close]="data.action == 'Synchronize' ? selectedFile : true"
-          [disabled]="data.action == 'Synchronize' && !selectedFile">{{data.action}}</button>
+  <button mat-button [mat-dialog-close]="data.conflictingFiles ? selectedFile : true"
+          [disabled]="data.conflictingFiles && !selectedFile">{{data.action}}</button>
 </mat-dialog-actions>
