@@ -21,9 +21,7 @@ export class PhotoboothOperationsService {
   dirTree: any;
   csv: any;
   equipment_file_description_id_directory = ExperimentData.equipment_file_description_id_directory;
-  //a modifier
   stimuli_filename_to_stimuli_token = ExperimentData.stimuli_filename_to_stimuli_token;
-  //a modifier
   experimental_designs: object = DevExperimentalDesign.experimental_designs;
 
   constructor(

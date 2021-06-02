@@ -1,5 +1,20 @@
+<div>
+  <hot-table
+    class="hot-table"
+    licenseKey='non-commercial-and-evaluation'
+    [rowHeaders]="true"
+    [data]="dataset">
+    <hot-column data="name" title="Name"></hot-column>
+    <hot-column data="start_marker" title="Marker start"></hot-column>
+    <hot-column data="end_marker" title="Marker end"></hot-column>
+    <hot-column data="equipment_software_id" title="Software id"></hot-column>
+    <hot-column data="equipment_software_version_id" title="Software version id"></hot-column>
+    <hot-column data="equipment_file_description_id" title="Equipment file description id"></hot-column>
+  </hot-table>
+</div>
+<button (click)="onGetData()">get data</button>
+
 <div class= "dialog">
-  <setProjectEvents></setProjectEvents>
   <button mat-raised-button (click)="onCreateProject()">
     <mat-icon mat-list-icon>create_new_folder</mat-icon> Create project
   </button>

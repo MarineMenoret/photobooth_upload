@@ -2,8 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MaterialModule } from '../../../../material-module';
 import { SharedModule } from '../../../../shared/shared.module';
-import { SetProjectEventsModule } from './setProjectEvents/setProjectEvents.module';
-
+import { HotTableModule } from '@handsontable/angular';
 
 import { CreatePhotoboothProject } from './createPhotoboothProject.component';
 
@@ -13,7 +12,7 @@ import { CreatePhotoboothProject } from './createPhotoboothProject.component';
     CommonModule, 
     MaterialModule,
     SharedModule, 
-    SetProjectEventsModule
+    HotTableModule
   ],
   exports: [
     CreatePhotoboothProject
