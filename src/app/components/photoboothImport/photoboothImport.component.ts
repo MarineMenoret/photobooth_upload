@@ -5,6 +5,8 @@ import {Subscription} from "rxjs";
 import {ElectronService} from "../../core/services";
 import {animate, state, style, transition, trigger} from "@angular/animations";
 import {ISyncFile} from "../../shared/interfaces/file";
+import { MatDialog } from "@angular/material/dialog";
+// import { ConnexionDialogComponent } from "../connexionDialog/connexionDialog.component"
 
 @Component({
   selector: "photoboothImport",
@@ -27,7 +29,8 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   isLoading: boolean;
 
   constructor(private syncService: SyncService,
-              private electronService: ElectronService) {
+              private electronService: ElectronService,
+              public matDialog: MatDialog) {
   }
 
   ngOnInit(): void {
@@ -37,7 +40,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   initialize(): void {
     this.subscriptions = new Array<Subscription>();
     this.displayedProjectColumns = ['project', 'creation date', 'sync state'];
-    this.displayedFileColumns = ['file', 'file creation date', 'file sync state'];
+    this.displayedFileColumns = ['file', 'file creation date', 'file sync state', 'actions-col'];
     this.syncProjects = new Array<ISyncProject>();
     this.isLoading = false;
 
@@ -94,6 +97,15 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
 
   showSnackBar(message: string, event?: MouseEvent): void {
     this.syncService.showSnackBar(message, event);
+  }
+
+  onImportBtnClick(dirPath) {
+    /* this.matDialog.open(ConnexionDialogComponent, {
+      data: {
+        projectsDirLocalPath: this.projectsDirLocalPath,
+        selectedProjectLocalPath : dirPath
+      },
+    }); */
   }
 
   ngOnDestroy(): void {

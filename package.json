@@ -49,6 +49,7 @@
     "@angular/forms": "^11.0.0 || ^12.0.0-0",
     "@angular/material": "11.2.9",
     "@electron/remote": "1.0.4",
+<<<<<<< HEAD
     "@types/request": "2.48.5",
     "angular-material": "1.2.2",
     "firebase": "8.4.1",
@@ -56,6 +57,20 @@
     "primeicons": "4.1.0",
     "primeng": "12.0.0-rc.1",
     "request": "2.88.2"
+=======
+    "@handsontable/angular": "8.4.0",
+    "@types/request": "2.48.5",
+    "angular-material": "1.2.2",
+    "csv": "5.5.0",
+    "directory-tree": "2.2.9",
+    "firebase": "8.4.1",
+    "handsontable": "8.4.0",
+    "image-size": "1.0.0",
+    "ngx-auth-firebaseui": "5.2.0",
+    "request": "2.88.2",
+    "swagger-client": "3.13.3",
+    "uuidv4": "6.2.8"
+>>>>>>> create project, import data and events into photobooth
   },
   "devDependencies": {
     "@angular-builders/custom-webpack": "11.1.1",

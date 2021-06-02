@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .photobooth-sync-container {
   padding: 20px;
 
@@ -101,3 +102,16 @@
   }
 }
 
+=======
+:host {
+  .mat-card {
+    max-width: 75%;
+    margin: 100px auto;
+  }
+
+  table {
+    margin: 20px auto;
+    width: 100%;
+  }
+}
+>>>>>>> create project, import data and events into photobooth

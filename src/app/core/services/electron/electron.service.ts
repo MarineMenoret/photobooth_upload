@@ -21,6 +21,11 @@ export class ElectronService {
   path: typeof path;
   request: typeof request;
   crypto: typeof crypto;
+  swagger: any;
+  dirTree: any;
+  csv: any;
+  sizeOf: any;
+  uuidv4: any;
 
   get isElectron(): boolean {
     return !!(window && window.process && window.process.type);
@@ -41,6 +46,11 @@ export class ElectronService {
       this.path = window.require('path');
       this.request = window.require('request');
       this.crypto = window.require('crypto');
+      this.swagger = window.require('swagger-client');
+      this.dirTree = window.require('directory-tree');
+      this.csv = window.require('csv');
+      this.sizeOf = window.require('image-size');
+      this.uuidv4 = window.require('uuidv4');
     }
   }
 }
