@@ -191,7 +191,7 @@ export class DirectoryTreeService implements OnDestroy {
       directoryTree.path = this.findRelativePath(directoryTree.path);
       return directoryTree;
     } else {
-      directoryTree.children.forEach((child: IDirectoryTree) => this.buildRelativeTree(child));
+      directoryTree.children?.forEach((child: IDirectoryTree) => this.buildRelativeTree(child));
       return directoryTree;
     }
   }
