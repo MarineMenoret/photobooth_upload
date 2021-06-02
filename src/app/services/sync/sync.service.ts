@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
-import {AngularFirestore, AngularFirestoreCollection, DocumentReference} from "@angular/fire/firestore";
-import {IProject, ISyncProject} from "../../shared/interfaces/project";
+import {AngularFirestore, AngularFirestoreCollection} from "@angular/fire/firestore";
+import {IProject} from "../../shared/interfaces/project";
 import {Subject} from "rxjs";
 import firebase from "firebase";
 import Timestamp = firebase.firestore.Timestamp;
@@ -10,7 +10,7 @@ import {AngularFireStorage} from "@angular/fire/storage";
 import TaskState = firebase.storage.TaskState;
 import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
 import {IFile} from "../../shared/interfaces/file";
-import Reference = firebase.storage.Reference;
+
 
 @Injectable({
   providedIn: 'root'
@@ -131,7 +131,21 @@ export class SyncService {
       this.projectsCollection.ref.where('name', '==', projectName).get()
         .then((querySnapshot) => {
           if (querySnapshot.empty) {
-            reject(new Error('Project not found!'));
+            const project: IProject = {
+              name: projectName,
+              creationDate: new Date(),
+              directoryTree: {name: projectName},
+              files: []
+            };
+
+            this.projectsCollection.add(project)
+              .then((projectRef) => {
+                console.log(`New project structure has been successfully created with ID: ${projectRef.id}`);
+                this.updateProjectStructure(projectsDirectory, file)
+                  .then(() => resolve())
+                  .catch(error => reject(error));
+              })
+              .catch(error => reject(error));
           } else if (querySnapshot.size == 1) {
             const updatedDirectoryTree = querySnapshot.docs[0].data().directoryTree;
             const updatedFiles = querySnapshot.docs[0].data().files;
@@ -185,82 +199,6 @@ export class SyncService {
         this.updateDirectoryTree(directoryTree.children[childDirectoryIndex], pathSegments, filePath);
       }
     }
-  }
-
-  uploadProject(projectsDirectory: string, project: ISyncProject): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.saveProjectStructure(project)
-        .then(async projectRef => {
-          console.log(`Project structure has been successfully saved with ID: ${projectRef.id}`);
-          const uploadedFilesRef = new Array<Reference>();
-
-          for (const file of project.files) {
-            const fullPath = this.electronService.path.join(projectsDirectory, file.path);
-            let data: Buffer;
-
-            // Reading project files
-            try {
-              data = this.electronService.fs.readFileSync(fullPath);
-            } catch (error) {
-              // If an error occurred while reading the project files, restore the database to its original state and exit from the for loop.
-              await projectRef.delete();
-              for (const fileRef of uploadedFilesRef) {
-                await fileRef.delete();
-              }
-              reject(error);
-              break;
-            }
-
-            // Uploading project files
-            if (data) {
-              try {
-                const uploadTaskSnapShot = await this.storage.upload(file.path, data);
-                switch (uploadTaskSnapShot.state) {
-                  case TaskState.SUCCESS:
-                    uploadedFilesRef.push(uploadTaskSnapShot.ref);
-                    break;
-                  case TaskState.ERROR:
-                    await Promise.reject(new Error(`The upload of the file "${file.name}" failed!`));
-                    break;
-                }
-              } catch (error) {
-                // If an error occurred while uploading the project files, restore the database to its original state and exit from the for loop.
-                await projectRef.delete();
-                for (const fileRef of uploadedFilesRef) {
-                  await fileRef.delete();
-                }
-                reject(error);
-                break;
-              }
-            }
-          }
-
-          if (uploadedFilesRef.length == project.files.length) {
-            resolve();
-          } else {
-            reject(new Error('Some files were not uploaded correctly!'));
-          }
-        })
-        .catch(error => reject(error));
-    });
-  }
-
-  saveProjectStructure(project: ISyncProject): Promise<DocumentReference<IProject>> {
-    const projectToSave: IProject = {
-      name: project.name,
-      creationDate: project.creationDate,
-      directoryTree: project.directoryTree,
-      files: project.files.map(syncFile => {
-        return {
-          name: syncFile.name,
-          creationDate: syncFile.creationDate,
-          path: syncFile.path,
-          sha256: syncFile.sha256,
-          size: syncFile.size
-        };
-      })
-    };
-    return this.projectsCollection.add(projectToSave);
   }
 
   downloadFile(projectsDirectory: string, file: IFile): Promise<void> {

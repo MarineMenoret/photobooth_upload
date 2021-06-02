@@ -215,37 +215,74 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
         if (file) {
           dialogData = {
             title: "File upload",
-            content: `The "${project.name}" project does not yet exist in the cloud. This will upload the entire project. Do you want to continue?`,
+            content: `The "${project.name}" project does not yet exist in the cloud. This will create it. Do you want to continue?`,
             action: "Upload"
           };
+
+          this.openDialog(dialogData).toPromise()
+            .then((userAction) => {
+              if (userAction) {
+                project.sync = 'isSynchronizing';
+                file.sync = 'isSynchronizing';
+
+                const fileToUpload: IFile = {
+                  name: file.name,
+                  creationDate: file.creationDate,
+                  path: file.path,
+                  size: file.size,
+                  sha256: file.sha256
+                };
+
+                this.syncService.uploadFile(this.projectsDirectory, fileToUpload)
+                  .then(() => {
+                    file.sync = 'synchronized';
+                    this.updateProjectSynchronizationState(project);
+                  })
+                  .catch(error => {
+                    file.sync = 'local';
+                    this.updateProjectSynchronizationState(project);
+                    this.showSnackBar(`The upload of the file "${file.name}" failed!`);
+                    console.log(error);
+                  });
+              }
+            })
+            .catch(error => console.log(error));
         } else {
           dialogData = {
             title: "Project upload",
             content: `You are about to upload the entire "${project.name}" project. Do you want to continue?`,
             action: "Upload"
           };
+
+          this.openDialog(dialogData).toPromise()
+            .then(async userAction => {
+              if (userAction) {
+                project.sync = 'isSynchronizing';
+                project.files.forEach(file => file.sync = 'isSynchronizing');
+
+                for (const file of project.files) {
+                  try {
+                    const fileToUpload: IFile = {
+                      name: file.name,
+                      creationDate: file.creationDate,
+                      path: file.path,
+                      size: file.size,
+                      sha256: file.sha256
+                    };
+
+                    await this.syncService.uploadFile(this.projectsDirectory, fileToUpload);
+                    file.sync = 'synchronized';
+                  } catch (error) {
+                    file.sync = 'local';
+                    this.showSnackBar(`The upload of the file "${file.name}" failed!`);
+                    console.log(error);
+                  }
+                }
+                this.updateProjectSynchronizationState(project);
+              }
+            })
+            .catch(error => console.log(error));
         }
-
-        const dialogSubscription = this.openDialog(dialogData)
-          .subscribe(userAction => {
-            if (userAction) {
-              project.sync = 'isSynchronizing';
-              project.files.forEach(file => file.sync = 'isSynchronizing');
-
-              this.syncService.uploadProject(this.projectsDirectory, project)
-                .then(() => {
-                  project.sync = 'synchronized';
-                  project.files.forEach(file => file.sync = 'synchronized');
-                })
-                .catch(error => {
-                  project.sync = 'local';
-                  project.files.forEach(file => file.sync = 'local');
-                  this.showSnackBar('Error: Synchronisation failed, try again!');
-                  console.log(error);
-                });
-            }
-            dialogSubscription.unsubscribe();
-          });
         break;
       }
       case "cloud": {
