@@ -220,7 +220,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
           };
 
           this.openDialog(dialogData).toPromise()
-            .then((userAction) => {
+            .then(userAction => {
               if (userAction) {
                 project.sync = 'isSynchronizing';
                 file.sync = 'isSynchronizing';
@@ -241,7 +241,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                   .catch(error => {
                     file.sync = 'local';
                     this.updateProjectSynchronizationState(project);
-                    this.showSnackBar(`The upload of the file "${file.name}" failed!`);
+                    this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
                     console.log(error);
                   });
               }
@@ -274,7 +274,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                     file.sync = 'synchronized';
                   } catch (error) {
                     file.sync = 'local';
-                    this.showSnackBar(`The upload of the file "${file.name}" failed!`);
+                    this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
                     console.log(error);
                   }
                 }
@@ -295,9 +295,10 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
             action: "Download"
           };
 
-          const dialogSubscription = this.openDialog(dialogData)
-            .subscribe(userAction => {
+          this.openDialog(dialogData).toPromise()
+            .then(userAction => {
               if (userAction) {
+                project.sync = 'isSynchronizing';
                 file.sync = 'isSynchronizing';
 
                 this.syncService.downloadFile(this.projectsDirectory, file)
@@ -307,12 +308,13 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                   })
                   .catch(error => {
                     file.sync = 'cloud';
-                    this.showSnackBar('Error: Synchronisation failed, try again!');
+                    this.updateProjectSynchronizationState(project);
+                    this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
                     console.log(error);
                   });
               }
-              dialogSubscription.unsubscribe();
-            });
+            })
+            .catch(error => console.log(error));
         } else {
           dialogData = {
             title: "Project download",
@@ -332,7 +334,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                     file.sync = 'synchronized';
                   } catch (error) {
                     file.sync = 'cloud';
-                    this.showSnackBar(`The download of the file "${file.name}" failed!`);
+                    this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
                     console.log(error);
                   }
                 }
@@ -347,6 +349,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
         if (file) {
           switch (file.sync) {
             case "local": {
+              project.sync = 'isSynchronizing';
               file.sync = 'isSynchronizing';
 
               const fileToUpload: IFile = {
@@ -364,12 +367,14 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                 })
                 .catch(error => {
                   file.sync = 'local';
-                  this.showSnackBar('Error: Synchronisation failed, try again!');
+                  this.updateProjectSynchronizationState(project);
+                  this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
                   console.log(error);
                 });
               break;
             }
             case "cloud": {
+              project.sync = 'isSynchronizing';
               file.sync = 'isSynchronizing';
 
               this.syncService.downloadFile(this.projectsDirectory, file)
@@ -379,18 +384,19 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                 })
                 .catch(error => {
                   file.sync = 'cloud';
-                  this.showSnackBar('Error: Synchronisation failed, try again!');
+                  this.updateProjectSynchronizationState(project);
+                  this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
                   console.log(error);
                 });
               break;
             }
             case "unsynchronized": {
               const remoteFile = this.remoteProjects
-                .find(remoteProject => remoteProject.name = project.name).files
+                .find(remoteProject => remoteProject.name == project.name).files
                 .find(remoteFile => remoteFile.name == file.name);
 
               const localFile = this.localProjects
-                .find(localProject => localProject.name = project.name).files
+                .find(localProject => localProject.name == project.name).files
                 .find(localFile => localFile.name == file.name);
 
               const conflictingFiles = [
@@ -409,6 +415,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                 .then(userAction => {
                   if (userAction) {
                     if (conflictingFiles.indexOf(userAction as unknown as string) == 0) {
+                      project.sync = 'isSynchronizing';
                       file.sync = 'isSynchronizing';
 
                       this.syncService.downloadFile(this.projectsDirectory, remoteFile)
@@ -421,10 +428,12 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                         })
                         .catch(error => {
                           file.sync = 'unsynchronized';
-                          this.showSnackBar('Error: Synchronisation failed, try again!');
+                          this.updateProjectSynchronizationState(project);
+                          this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
                           console.log(error);
                         });
                     } else {
+                      project.sync = 'isSynchronizing';
                       file.sync = 'isSynchronizing';
 
                       this.syncService.uploadFile(this.projectsDirectory, localFile, true)
@@ -437,7 +446,8 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                         })
                         .catch(error => {
                           file.sync = 'unsynchronized';
-                          this.showSnackBar('Error: Synchronisation failed, try again!');
+                          this.updateProjectSynchronizationState(project);
+                          this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
                           console.log(error);
                         });
                     }
@@ -474,7 +484,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                       file.sync = 'synchronized';
                     } catch (error) {
                       file.sync = 'cloud';
-                      this.showSnackBar(`The download of the file "${file.name}" failed!`);
+                      this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
                       console.log(error);
                     }
                   } else if (file.sync == 'local') {
@@ -492,7 +502,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                       file.sync = 'synchronized';
                     } catch (error) {
                       file.sync = 'local';
-                      this.showSnackBar(`The upload of the file "${file.name}" failed!`);
+                      this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
                       console.log(error);
                     }
                   }
