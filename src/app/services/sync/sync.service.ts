@@ -103,22 +103,20 @@ export class SyncService {
         if (error) {
           reject(error);
         } else {
-          this.updateProjectStructure(projectsDirectory, file, isAConflictFile)
-            .then(() => {
-              this.storage.upload(file.path, data)
-                .then(uploadTaskSnapShot => {
-                  switch (uploadTaskSnapShot.state) {
-                    case TaskState.SUCCESS:
-                      resolve();
-                      break;
-                    case TaskState.ERROR:
-                      reject(new Error(`The upload of the file "${file.name}" failed!`));
-                      break;
-                  }
-                })
-                .catch((error) => reject(error));
+          this.storage.upload(file.path, data)
+            .then(uploadTaskSnapShot => {
+              switch (uploadTaskSnapShot.state) {
+                case TaskState.SUCCESS:
+                  this.updateProjectStructure(projectsDirectory, file, isAConflictFile)
+                    .then(() => resolve())
+                    .catch(error => reject(error));
+                  break;
+                case TaskState.ERROR:
+                  reject(new Error(`The upload of the file "${file.name}" failed!`));
+                  break;
+              }
             })
-            .catch(error => reject(error));
+            .catch((error) => reject(error));
         }
       });
     });
