@@ -85,5 +85,3 @@ try {
   // Catch Error
   // throw e;
 }
-
-// Juste a test for workflow actions
