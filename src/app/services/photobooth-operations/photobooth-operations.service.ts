@@ -121,14 +121,14 @@ export class PhotoboothOperationsService {
    * available in local project directory
    * @param projectPath : local project directory path
    */
-  async createProject(projectPath) {
+  async createProject(projectPath, events) {
     const tree = this.electronService.dirTree(projectPath);
 
     //get experimental design :
     console.log("WORKING ON PROJECT ", this.experimental_designs["name"]);
     let name = this.experimental_designs["name"];
     let signal_types = this.experimental_designs["signal_types"];
-    let events = this.experimental_designs["events"];
+    // let events = this.experimental_designs["events"];
     let number_of_sessions = this.experimental_designs["number_of_sessions"];
     let start_date = this.experimental_designs["start_date"];
     let end_date = this.experimental_designs["end_date"];
@@ -211,7 +211,7 @@ export class PhotoboothOperationsService {
   async associateProjectEvents(events, projectId) {
     for (let event of events) {
       let eventName = "";
-      if (event.name) {
+      if (event.name !== null) {
         eventName = event.name;
       } else {
         eventName = event.start_marker.replace('_start', '');

@@ -11,7 +11,7 @@ import { PhotoboothOperationsService } from "../../../../services/photobooth-ope
 export class CreatePhotoboothProject implements OnInit {
 
   selectedProjectLocalPath;
-  dataset: any[] = [
+  events: any[] = [
     { name: null, start_marker: null, end_marker: null, equipment_software_id: null, equipment_software_version_id: null, equipment_file_description_id: null },
   ];
 
@@ -25,10 +25,10 @@ export class CreatePhotoboothProject implements OnInit {
   ngOnInit(): void { }
 
   onGetData() {
-    console.log("dataset : ", this.dataset);
+    console.log("dataset : ", this.events);
   }
 
   onCreateProject() {
-    this.photoboothOperationsService.createProject(this.selectedProjectLocalPath);
+    this.photoboothOperationsService.createProject(this.selectedProjectLocalPath, this.events);
   }
 }
