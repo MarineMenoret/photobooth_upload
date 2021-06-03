@@ -15,5 +15,5 @@
 </div>
 <div mat-dialog-actions>
   <button mat-raised-button color="warn" (click)="onCancel()">Cancel</button>
-  <button mat-raised-button (click)="onConnexion()">Connexion</button>
+  <button mat-raised-button (click)="onConnexion()" [disabled]="!hostname || !email || !password">Connexion</button>
 </div>

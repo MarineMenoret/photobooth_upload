@@ -37,6 +37,8 @@ export class PhotoboothProjectsListComponent {
       data: {
         selectedProjectLocalPath: this.selectedProjectLocalPath
       },
+      minWidth: '80%',
+      height: '80%'
     });
   }
  

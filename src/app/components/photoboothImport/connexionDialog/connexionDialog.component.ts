@@ -43,6 +43,8 @@ export class ConnexionDialogComponent {
         projectsDirLocalPath : this.projectsDirLocalPath,
         selectedProjectLocalPath : this.selectedProjectLocalPath
       },
+      minWidth: '80%',
+      height: '80%'
     });
   }
 }
