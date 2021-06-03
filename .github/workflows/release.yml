@@ -33,3 +33,5 @@ jobs:
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
+          echo "This is the secret token, but it will be sensored: "
+          echo ${{ secrets.GITHUB_TOKEN }}
