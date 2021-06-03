@@ -400,8 +400,8 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
                 .find(localFile => localFile.name == file.name);
 
               const conflictingFiles = [
-                `Server version: ${remoteFile.name} ; created: ${remoteFile.creationDate.toLocaleDateString()} at ${remoteFile.creationDate.toLocaleTimeString()}`,
-                `Local version: ${localFile.name} ; created: ${localFile.creationDate.toLocaleDateString()} at ${localFile.creationDate.toLocaleTimeString()}`
+                `Server version: ${remoteFile.name} ; created: ${remoteFile.creationDate.toDate().toLocaleDateString()} at ${remoteFile.creationDate.toDate().toLocaleTimeString()}`,
+                `Local version: ${localFile.name} ; created: ${localFile.creationDate.toDate().toLocaleDateString()} at ${localFile.creationDate.toDate().toLocaleTimeString()}`
               ];
 
               const dialogData: DialogData = {

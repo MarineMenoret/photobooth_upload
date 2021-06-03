@@ -9,6 +9,8 @@ import {IProject} from '../../shared/interfaces/project';
 import * as fs from 'fs';
 import * as path from 'path';
 import {IFile} from '../../shared/interfaces/file';
+import firebase from "firebase";
+import Timestamp = firebase.firestore.Timestamp;
 
 @Injectable({
   providedIn: 'root'
@@ -94,7 +96,7 @@ export class DirectoryTreeService implements OnDestroy {
 
       const file: IFile = {
         name: elementName,
-        creationDate: this.fs.statSync(elementPath).birthtime,
+        creationDate: Timestamp.fromDate(this.fs.statSync(elementPath).birthtime),
         path: this.findRelativePath(elementPath),
         size: this.fs.statSync(elementPath).size,
         sha256: await this.hashfile(elementPath)
@@ -204,7 +206,7 @@ export class DirectoryTreeService implements OnDestroy {
 
     const project: IProject = {
       name: directoryTree.name,
-      creationDate: new Date(),
+      creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(this.directoryPath).birthtime),
       directoryTree: relativeDirectoryTree,
       files: this.files
     };

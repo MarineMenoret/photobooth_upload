@@ -34,21 +34,7 @@ export class SyncService {
     const projectsSubscription = this.projectsCollection.get()
       .subscribe(
         (querySnapshot) => {
-          querySnapshot.forEach((doc) => {
-            const project: IProject = {
-              name: doc.data().name,
-              creationDate: (doc.data().creationDate as unknown as Timestamp).toDate(),
-              directoryTree: doc.data().directoryTree,
-              files: doc.data().files.map(file => {
-                return {
-                  ...file,
-                  creationDate: (file.creationDate as unknown as Timestamp).toDate()
-                };
-              }),
-            };
-            // Convert Timestamp to Date.
-            projects.push(project);
-          });
+          querySnapshot.forEach(doc => projects.push(doc.data()));
           this.remoteProjects$.next(projects);
         },
         (error) => {
@@ -75,7 +61,7 @@ export class SyncService {
 
         const project: IProject = {
           name: child,
-          creationDate: this.electronService.fs.lstatSync(childPath).birthtime,
+          creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(childPath).birthtime),
           directoryTree: this.directoryTreeService.buildRelativeTree(await this.directoryTreeService.buildTree(childPath)),
           files: this.directoryTreeService.getFiles().map(file => {
             const pathSegments = file.path.split(this.electronService.path.sep);
@@ -125,13 +111,14 @@ export class SyncService {
   updateProjectStructure(projectsDirectory: string, file: IFile, isAConflictFile?: boolean): Promise<void> {
     const pathSegments = file.path.split(this.electronService.path.sep);
     const projectName = pathSegments[0];
+    const projectPath = this.electronService.path.join(projectsDirectory, projectName);
     return new Promise<void>((resolve, reject) => {
       this.projectsCollection.ref.where('name', '==', projectName).get()
         .then((querySnapshot) => {
           if (querySnapshot.empty) {
             const project: IProject = {
               name: projectName,
-              creationDate: new Date(),
+              creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(projectPath).birthtime),
               directoryTree: {name: projectName},
               files: []
             };
