@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: "12.x"
       - run: npm ci
-      - run: npm run build --if-present
+      - run: npm run electron:build --if-present
 #       - run: npm test
       - run: npx semantic-release --branches auto-updater
         env:
