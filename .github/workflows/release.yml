@@ -47,6 +47,7 @@ jobs:
   build:
     name: Create Release
     # runs-on: ubuntu-latest
+    # runs-on: macos-latest
     runs-on: windows-latest
     steps:
       - name: Checkout code
