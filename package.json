@@ -1,6 +1,6 @@
 {
   "name": "photobooth-upload",
-  "version": "1.0.0",
+  "version": "1.0.0-test",
   "description": "Photobooth upload demo - build with maximegris/angular-electron)",
   "homepage": "https://github.com/maximegris/angular-electron",
   "author": {
