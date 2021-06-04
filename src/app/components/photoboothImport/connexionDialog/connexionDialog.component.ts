@@ -2,7 +2,9 @@
 import { Component, Inject } from "@angular/core";
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from "@angular/material/dialog";
 import { PhotoboothOperationsService } from "../../../services/photobooth-operations/photobooth-operations.service";
-import { PhotoboothProjectsListComponent } from "../photoboothProjectsList/photoboothProjectsList.component"
+import { PhotoboothProjectsListComponent } from "../photoboothProjectsList/photoboothProjectsList.component";
+import { MatSnackBar } from "@angular/material/snack-bar";
+
 
 @Component({
   selector: "connexionDialog",
@@ -21,8 +23,9 @@ export class ConnexionDialogComponent {
     public dialogRef: MatDialogRef<ConnexionDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data,
     private photoboothOperationsService: PhotoboothOperationsService,
-    public matDialog: MatDialog
-  ) { 
+    public matDialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {
     this.projectsDirLocalPath = this.data.projectsDirLocalPath;
     this.selectedProjectLocalPath = this.data.selectedProjectLocalPath;
   }
@@ -32,19 +35,34 @@ export class ConnexionDialogComponent {
   }
 
   async onConnexion() {
-    await this.photoboothOperationsService.connect(this.hostname, this.email, this.password);
-    this.photoboothProjects = await this.photoboothOperationsService.callApi('Projects', 'listProjects', {$limit : 100});
-    this.dialogRef.close();
+    const connected = await this.photoboothOperationsService.connect(this.hostname, this.email, this.password);
 
-    //TODO : afficher seulement si la connexion est établie. Sinon afficher erreur d'authentictaion
-    this.matDialog.open(PhotoboothProjectsListComponent, {
-      data: {
-        photoboothProjects : this.photoboothProjects['data'],
-        projectsDirLocalPath : this.projectsDirLocalPath,
-        selectedProjectLocalPath : this.selectedProjectLocalPath
-      },
-      minWidth: '80%',
-      height: '80%'
-    });
+    if (connected) {
+      this.showSnackbar("Successfully connected.", "grey");
+      this.photoboothProjects = await this.photoboothOperationsService.callApi('Projects', 'listProjects', { $limit: 100 });
+      this.dialogRef.close();
+
+      //TODO : afficher seulement si la connexion est établie. Sinon afficher erreur d'authentictaion
+      this.matDialog.open(PhotoboothProjectsListComponent, {
+        data: {
+          photoboothProjects: this.photoboothProjects['data'],
+          projectsDirLocalPath: this.projectsDirLocalPath,
+          selectedProjectLocalPath: this.selectedProjectLocalPath
+        },
+        minWidth: '50%',
+        // height: '80%'
+      });
+    } else {
+      this.showSnackbar("Invalid login information.", "mat-warn");
+    }
+  }
+
+  showSnackbar(msg, color) {
+    this.snackBar.open(msg, null,
+      {
+        duration: 2000,
+        panelClass: ['mat-toolbar', color]
+      }
+    );
   }
 }

@@ -47,20 +47,28 @@ export class PhotoboothOperationsService {
    */
   async connect(hostname, email, password) {
     this.hostname = hostname;
-    let jwt: any = await this.callJsonRequest('/authentication', {
-      "strategy": "local",
-      "email": email,
-      "password": password
-    });
-    this.auth_token = jwt.accessToken;
-    console.log("JWT Granted : ", this.auth_token)
-    let options = {
-      authorizations: {
-        "bearerAuth": this.auth_token
-      }
-    };
-    let client = await this.swagger(hostname + '/swagger.json', options);
-    this.api = client.apis;
+    try {
+      let jwt: any = await this.callJsonRequest('/authentication', {
+        "strategy": "local",
+        "email": email,
+        "password": password
+      });
+      this.auth_token = jwt.accessToken;
+      console.log("JWT Granted : ", this.auth_token)
+      let options = {
+        authorizations: {
+          "bearerAuth": this.auth_token
+        }
+      };
+      let client = await this.swagger(hostname + '/swagger.json', options);
+      this.api = client.apis;
+      if(this.auth_token !== undefined) return true;
+      else throw("401 Invalid login information");
+    } catch(e){
+      console.log("[ERROR] Photobooth Authentication failed: ", e);
+      return false;
+    }
+    
   };
 
   async callApi(tag, operation, parameters = null, payload = null) {
