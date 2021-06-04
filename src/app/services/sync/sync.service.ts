@@ -81,7 +81,7 @@ export class SyncService {
     this.localProjects$.next(projects);
   }
 
-  uploadFile(projectsDirectory: string, file: IFile, isAConflictFile?: boolean): Promise<void> {
+  uploadFile(projectsDirectory: string, file: IFile, isConflictingFile?: boolean): Promise<void> {
     const fullPath = this.electronService.path.join(projectsDirectory, file.path);
 
     return new Promise<void>((resolve, reject) => {
@@ -93,7 +93,7 @@ export class SyncService {
             .then(uploadTaskSnapShot => {
               switch (uploadTaskSnapShot.state) {
                 case TaskState.SUCCESS:
-                  this.updateProjectStructure(projectsDirectory, file, isAConflictFile)
+                  this.updateProjectStructure(projectsDirectory, file, isConflictingFile)
                     .then(() => resolve())
                     .catch(error => reject(error));
                   break;
@@ -108,7 +108,7 @@ export class SyncService {
     });
   }
 
-  updateProjectStructure(projectsDirectory: string, file: IFile, isAConflictFile?: boolean): Promise<void> {
+  updateProjectStructure(projectsDirectory: string, file: IFile, isConflictingFile?: boolean): Promise<void> {
     const pathSegments = file.path.split(this.electronService.path.sep);
     const projectName = pathSegments[0];
     const projectPath = this.electronService.path.join(projectsDirectory, projectName);
@@ -135,7 +135,7 @@ export class SyncService {
             const updatedDirectoryTree = querySnapshot.docs[0].data().directoryTree;
             const updatedFiles = querySnapshot.docs[0].data().files;
 
-            if (isAConflictFile) {
+            if (isConflictingFile) {
               const index = updatedFiles.findIndex(updatedFile => updatedFile.name == file.name && updatedFile.path == file.path);
 
               if (index !== -1) {

@@ -1,5 +1,5 @@
 import {Component, OnDestroy, OnInit} from "@angular/core";
-import {IProject, ISyncProject, SyncState} from "../../shared/interfaces/project";
+import {IProject, ISyncProject} from "../../shared/interfaces/project";
 import {SyncService} from "../../services/sync/sync.service";
 import {Observable, Subject, Subscription} from "rxjs";
 import {ElectronService} from "../../core/services";
@@ -202,334 +202,171 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
     this.syncProjects$.next(projects);
   }
 
-  synchronizeProject(project: ISyncProject, file?: ISyncFile, event?: MouseEvent): void {
-    // Prevent project expansion / collapse when we click on a sync icon.
-    if (event) {
-      event.stopPropagation();
-    }
+  syncFile(project: ISyncProject, file: ISyncFile): void {
+    const remoteFile = this.remoteProjects
+      .find(remoteProject => remoteProject.name == project.name).files
+      .find(remoteFile => remoteFile.name == file.name);
 
-    switch (project.sync) {
-      case "local": {
-        let dialogData: DialogData;
+    const localFile = this.localProjects
+      .find(localProject => localProject.name == project.name).files
+      .find(localFile => localFile.name == file.name);
 
-        if (file) {
-          dialogData = {
-            title: "File upload",
-            content: `The "${project.name}" project does not yet exist in the cloud. This will create it. Do you want to continue?`,
-            action: "Upload"
-          };
+    const conflictingFiles = [
+      `Server version: ${remoteFile.name} ; created: ${remoteFile.creationDate.toDate().toLocaleDateString()} at ${remoteFile.creationDate.toDate().toLocaleTimeString()}`,
+      `Local version: ${localFile.name} ; created: ${localFile.creationDate.toDate().toLocaleDateString()} at ${localFile.creationDate.toDate().toLocaleTimeString()}`
+    ];
 
-          this.openDialog(dialogData).toPromise()
-            .then(userAction => {
-              if (userAction) {
-                project.sync = 'isSynchronizing';
-                file.sync = 'isSynchronizing';
+    const dialogData: DialogData = {
+      title: "File synchronization",
+      content: "A synchronization conflict is detected. You must resolve it manually by choosing the version of the file to keep.",
+      action: "Synchronize",
+      conflictingFiles: conflictingFiles
+    };
 
-                const fileToUpload: IFile = {
-                  name: file.name,
-                  creationDate: file.creationDate,
-                  path: file.path,
-                  size: file.size,
-                  sha256: file.sha256
-                };
-
-                this.syncService.uploadFile(this.projectsDirectory, fileToUpload)
-                  .then(() => {
-                    file.sync = 'synchronized';
-                    this.updateProjectSynchronizationState(project);
-                  })
-                  .catch(error => {
-                    file.sync = 'local';
-                    this.updateProjectSynchronizationState(project);
-                    this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
-                    console.log(error);
-                  });
-              }
-            })
-            .catch(error => console.log(error));
-        } else {
-          dialogData = {
-            title: "Project upload",
-            content: `You are about to upload the entire "${project.name}" project. Do you want to continue?`,
-            action: "Upload"
-          };
-
-          this.openDialog(dialogData).toPromise()
-            .then(async userAction => {
-              if (userAction) {
-                project.sync = 'isSynchronizing';
-                project.files.forEach(file => file.sync = 'isSynchronizing');
-
-                for (const file of project.files) {
-                  try {
-                    const fileToUpload: IFile = {
-                      name: file.name,
-                      creationDate: file.creationDate,
-                      path: file.path,
-                      size: file.size,
-                      sha256: file.sha256
-                    };
-
-                    await this.syncService.uploadFile(this.projectsDirectory, fileToUpload);
-                    file.sync = 'synchronized';
-                  } catch (error) {
-                    file.sync = 'local';
-                    this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
-                    console.log(error);
-                  }
-                }
-                this.updateProjectSynchronizationState(project);
-              }
-            })
-            .catch(error => console.log(error));
-        }
-        break;
-      }
-      case "cloud": {
-        let dialogData: DialogData;
-
-        if (file) {
-          dialogData = {
-            title: "File download",
-            content: `The "${project.name}" project does not yet exist locally. This will create it. Do you want to continue?`,
-            action: "Download"
-          };
-
-          this.openDialog(dialogData).toPromise()
-            .then(userAction => {
-              if (userAction) {
-                project.sync = 'isSynchronizing';
-                file.sync = 'isSynchronizing';
-
-                this.syncService.downloadFile(this.projectsDirectory, file)
-                  .then(() => {
-                    file.sync = 'synchronized';
-                    this.updateProjectSynchronizationState(project);
-                  })
-                  .catch(error => {
-                    file.sync = 'cloud';
-                    this.updateProjectSynchronizationState(project);
-                    this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
-                    console.log(error);
-                  });
-              }
-            })
-            .catch(error => console.log(error));
-        } else {
-          dialogData = {
-            title: "Project download",
-            content: `You are about to download the entire "${project.name}" project. Do you want to continue?`,
-            action: "Download"
-          };
-
-          this.openDialog(dialogData).toPromise()
-            .then(async userAction => {
-              if (userAction) {
-                project.sync = 'isSynchronizing';
-                project.files.forEach(file => file.sync = 'isSynchronizing');
-
-                for (const file of project.files) {
-                  try {
-                    await this.syncService.downloadFile(this.projectsDirectory, file);
-                    file.sync = 'synchronized';
-                  } catch (error) {
-                    file.sync = 'cloud';
-                    this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
-                    console.log(error);
-                  }
-                }
-                this.updateProjectSynchronizationState(project);
-              }
-            })
-            .catch(error => console.log(error));
-        }
-        break;
-      }
-      case "unsynchronized": {
-        if (file) {
-          switch (file.sync) {
-            case "local": {
-              project.sync = 'isSynchronizing';
-              file.sync = 'isSynchronizing';
-
-              const fileToUpload: IFile = {
-                name: file.name,
-                creationDate: file.creationDate,
-                path: file.path,
-                size: file.size,
-                sha256: file.sha256
-              };
-
-              this.syncService.uploadFile(this.projectsDirectory, fileToUpload)
-                .then(() => {
-                  file.sync = 'synchronized';
-                  this.updateProjectSynchronizationState(project);
-                })
-                .catch(error => {
-                  file.sync = 'local';
-                  this.updateProjectSynchronizationState(project);
-                  this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
-                  console.log(error);
-                });
-              break;
+    this.openDialog(dialogData).toPromise()
+      .then(async userAction => {
+        if (userAction) {
+          if (conflictingFiles.indexOf(userAction as string) == 0) {
+            try {
+              file.creationDate = remoteFile.creationDate;
+              file.size = remoteFile.size;
+              file.sha256 = remoteFile.sha256;
+              await this.downloadFiles(project, [file], true);
+            } catch (error) {
+              console.log(error);
             }
-            case "cloud": {
-              project.sync = 'isSynchronizing';
-              file.sync = 'isSynchronizing';
-
-              this.syncService.downloadFile(this.projectsDirectory, file)
-                .then(() => {
-                  file.sync = 'synchronized';
-                  this.updateProjectSynchronizationState(project);
-                })
-                .catch(error => {
-                  file.sync = 'cloud';
-                  this.updateProjectSynchronizationState(project);
-                  this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
-                  console.log(error);
-                });
-              break;
-            }
-            case "unsynchronized": {
-              const remoteFile = this.remoteProjects
-                .find(remoteProject => remoteProject.name == project.name).files
-                .find(remoteFile => remoteFile.name == file.name);
-
-              const localFile = this.localProjects
-                .find(localProject => localProject.name == project.name).files
-                .find(localFile => localFile.name == file.name);
-
-              const conflictingFiles = [
-                `Server version: ${remoteFile.name} ; created: ${remoteFile.creationDate.toDate().toLocaleDateString()} at ${remoteFile.creationDate.toDate().toLocaleTimeString()}`,
-                `Local version: ${localFile.name} ; created: ${localFile.creationDate.toDate().toLocaleDateString()} at ${localFile.creationDate.toDate().toLocaleTimeString()}`
-              ];
-
-              const dialogData: DialogData = {
-                title: "Synchronization conflict",
-                content: "A synchronization conflict is detected. You must resolve it manually by choosing the version of the file to keep.",
-                action: "Synchronize",
-                conflictingFiles: conflictingFiles
-              };
-
-              this.openDialog(dialogData).toPromise()
-                .then(userAction => {
-                  if (userAction) {
-                    if (conflictingFiles.indexOf(userAction as unknown as string) == 0) {
-                      project.sync = 'isSynchronizing';
-                      file.sync = 'isSynchronizing';
-
-                      this.syncService.downloadFile(this.projectsDirectory, remoteFile)
-                        .then(() => {
-                          file.creationDate = remoteFile.creationDate;
-                          file.size = remoteFile.size;
-                          file.sha256 = remoteFile.sha256;
-                          file.sync = 'synchronized';
-                          this.updateProjectSynchronizationState(project);
-                        })
-                        .catch(error => {
-                          file.sync = 'unsynchronized';
-                          this.updateProjectSynchronizationState(project);
-                          this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
-                          console.log(error);
-                        });
-                    } else {
-                      project.sync = 'isSynchronizing';
-                      file.sync = 'isSynchronizing';
-
-                      this.syncService.uploadFile(this.projectsDirectory, localFile, true)
-                        .then(() => {
-                          file.creationDate = localFile.creationDate;
-                          file.size = localFile.size;
-                          file.sha256 = localFile.sha256;
-                          file.sync = 'synchronized';
-                          this.updateProjectSynchronizationState(project);
-                        })
-                        .catch(error => {
-                          file.sync = 'unsynchronized';
-                          this.updateProjectSynchronizationState(project);
-                          this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
-                          console.log(error);
-                        });
-                    }
-                  }
-                })
-                .catch(error => console.log(error));
-              break;
-            }
-            case "synchronized": {
-              this.showSnackBar('This file is already synchronized.');
-              break;
-            }
-            default: {
-              this.showSnackBar("Synchronization not yet available.");
+          } else {
+            try {
+              file.creationDate = localFile.creationDate;
+              file.size = localFile.size;
+              file.sha256 = localFile.sha256;
+              await this.uploadFiles(project, [file], true);
+            } catch (error) {
+              console.log(error);
             }
           }
-        } else {
-          const dialogData: DialogData = {
-            title: "Project synchronization",
-            content: `You are about to synchronize the entire "${project.name}" project. Do you want to continue?`,
-            action: "Synchronize"
-          };
-
-          this.openDialog(dialogData).toPromise()
-            .then(async userAction => {
-              if (userAction) {
-                project.sync = 'isSynchronizing';
-
-                for (const file of project.files) {
-                  if (file.sync == 'cloud') {
-                    file.sync = 'isSynchronizing';
-                    try {
-                      await this.syncService.downloadFile(this.projectsDirectory, file);
-                      file.sync = 'synchronized';
-                    } catch (error) {
-                      file.sync = 'cloud';
-                      this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
-                      console.log(error);
-                    }
-                  } else if (file.sync == 'local') {
-                    file.sync = 'isSynchronizing';
-                    try {
-                      const fileToUpload: IFile = {
-                        name: file.name,
-                        creationDate: file.creationDate,
-                        path: file.path,
-                        size: file.size,
-                        sha256: file.sha256
-                      };
-
-                      await this.syncService.uploadFile(this.projectsDirectory, fileToUpload);
-                      file.sync = 'synchronized';
-                    } catch (error) {
-                      file.sync = 'local';
-                      this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
-                      console.log(error);
-                    }
-                  }
-                }
-                this.updateProjectSynchronizationState(project);
-
-                if (project.sync as SyncState == 'unsynchronized') {
-                  this.showSnackBar('Some synchronization conflicts have been detected, you must resolve them manually.');
-                }
-              }
-            })
-            .catch(error => console.log(error));
         }
-        break;
-      }
-      case "synchronized": {
-        if (file) {
-          this.showSnackBar('This file is already synchronized.');
-        } else {
-          this.showSnackBar('This project is already synchronized.');
+      })
+      .catch(error => console.log(error));
+  }
+
+  syncProject(project: ISyncProject, event: MouseEvent): void {
+    // Prevent project expansion / collapse when we click on a sync icon.
+    event.stopPropagation();
+
+    const dialogData: DialogData = {
+      title: "Project synchronization",
+      content: `You are about to synchronize the entire "${project.name}" project. Do you want to continue?`,
+      action: "Synchronize"
+    };
+
+    this.openDialog(dialogData).toPromise()
+      .then(async userAction => {
+        if (userAction) {
+          try {
+            await this.downloadFiles(project, project.files.filter(file => file.sync == 'cloud'));
+            await this.uploadFiles(project, project.files.filter(file => file.sync == 'local'));
+            if (project.sync == 'unsynchronized') {
+              this.showSnackBar('Some synchronization conflicts have been detected, you must resolve them manually.');
+            }
+          } catch (error) {
+            console.log(error);
+          }
         }
-        break;
-      }
-      default: {
-        this.showSnackBar("Synchronization not yet available.");
+      })
+      .catch(error => console.log(error));
+  }
+
+  downloadProject(project: ISyncProject, event: MouseEvent): void {
+    // Prevent project expansion / collapse when we click on a sync icon.
+    event.stopPropagation();
+
+    const dialogData: DialogData = {
+      title: "Project download",
+      content: `You are about to download the entire "${project.name}" project. Do you want to continue?`,
+      action: "Download"
+    };
+
+    this.openDialog(dialogData).toPromise()
+      .then(async userAction => {
+        if (userAction) {
+          try {
+            await this.downloadFiles(project, project.files);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+      })
+      .catch(error => console.log(error));
+  }
+
+  uploadProject(project: ISyncProject, event: MouseEvent): void {
+    // Prevent project expansion / collapse when we click on a sync icon.
+    event.stopPropagation();
+
+    const dialogData: DialogData = {
+      title: "Project upload",
+      content: `You are about to upload the entire "${project.name}" project. Do you want to continue?`,
+      action: "Upload"
+    };
+
+    this.openDialog(dialogData).toPromise()
+      .then(async userAction => {
+        if (userAction) {
+          try {
+            await this.uploadFiles(project, project.files);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+      })
+      .catch(error => console.log(error));
+  }
+
+  async downloadFiles(project: ISyncProject, files: Array<ISyncFile>, areConflictingFiles?: boolean): Promise<void> {
+    project.sync = 'isSynchronizing';
+    files.forEach(file => file.sync = 'isSynchronizing');
+
+    for (const file of files) {
+      try {
+        await this.syncService.downloadFile(this.projectsDirectory, file);
+        file.sync = 'synchronized';
+      } catch (error) {
+        areConflictingFiles
+          ? file.sync = 'unsynchronized'
+          : file.sync = 'cloud';
+        this.showSnackBar(`Error: the download of the file "${file.name}" failed!`);
+        console.log(error);
       }
     }
+    this.updateProjectSynchronizationState(project);
+  }
+
+  async uploadFiles(project: ISyncProject, files: Array<ISyncFile>, areConflictingFiles?: boolean): Promise<void> {
+    project.sync = 'isSynchronizing';
+    files.forEach(file => file.sync = 'isSynchronizing');
+
+    for (const file of files) {
+      try {
+        const fileToUpload: IFile = {
+          name: file.name,
+          creationDate: file.creationDate,
+          path: file.path,
+          size: file.size,
+          sha256: file.sha256
+        };
+
+        await this.syncService.uploadFile(this.projectsDirectory, fileToUpload, areConflictingFiles);
+        file.sync = 'synchronized';
+      } catch (error) {
+        areConflictingFiles
+          ? file.sync = 'unsynchronized'
+          : file.sync = 'local';
+        this.showSnackBar(`Error: the upload of the file "${file.name}" failed!`);
+        console.log(error);
+      }
+    }
+    this.updateProjectSynchronizationState(project);
   }
 
   updateProjectSynchronizationState(syncProject: ISyncProject): void {
@@ -544,11 +381,16 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
     }
   }
 
-  showSnackBar(message: string): void {
+  showSnackBar(message: string, event?: MouseEvent): void {
+    // Prevent project expansion / collapse when we click on a sync icon.
+    if (event) {
+      event.stopPropagation();
+    }
+
     this.snackBar.open(message, null, {duration: 2000});
   }
 
-  openDialog(data: DialogData): Observable<boolean> {
+  openDialog(data: DialogData): Observable<any> {
     const dialogRef = this.dialog.open(SyncDialogComponent, {data: data});
     return dialogRef.afterClosed();
   }
