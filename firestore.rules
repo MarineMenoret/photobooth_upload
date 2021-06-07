@@ -1,27 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function userIsModerator(){
-      return request.auth.token.isModerator == true;
+
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
-    
-    match /{document=**} {
-      allow read, write: if false;
+
+    // Allow only content owners to read, write, create and update their own projects and admins (users in the admins collection)
+    match /projects/{document=**} {
+      allow read, create, update, list: if (request.auth.uid != null) && ((request.auth.uid == resource.data.authorId) || isAdmin());
     }
-    match /readonly/{docId}{
-      allow read: if true;
-      allow write: if false;
-    }
-    match /users/{userId}{
-      allow write: if (request.auth.uid == userId)
-    }
-    match /posts/{postId}{
-      allow read: if (resource.data.visibility == "public") ||
-        (resource.data.authorId == request.auth.uid);
-      allow update: if (resource.data.authorId == request.auth.uid) ||
-        userIsModerator();
-      allow create: if (resource.data.authorId == request.auth.uid);
+    // Capture
+    match /users/{userId} {
+      allow read, create, update: if (request.auth.uid != null) && ((request.auth.uid == userId) || isAdmin());
     }
   }
 }
