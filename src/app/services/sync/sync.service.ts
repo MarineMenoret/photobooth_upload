@@ -84,15 +84,7 @@ export class SyncService {
           name: child,
           creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(childPath).birthtime),
           directoryTree: this.directoryTreeService.buildRelativeTree(await this.directoryTreeService.buildTree(childPath)),
-          files: this.directoryTreeService.getFiles().map(file => {
-            const pathSegments = file.path.split(this.electronService.path.sep);
-            const relativePathSegments = pathSegments.slice(pathSegments.indexOf(child));
-            const localRelativePath = this.electronService.path.join(...relativePathSegments);
-            return {
-              ...file,
-              path: localRelativePath
-            };
-          })
+          files: this.directoryTreeService.getFiles()
         };
 
         projects.push(project);
@@ -401,7 +393,8 @@ export class SyncService {
   }
 
   private updateProjectStructure(projectsDirectory: string, file: IFile, isConflictingFile?: boolean): Promise<void> {
-    const pathSegments = file.path.split(this.electronService.path.sep);
+    const normalizedFilePath = this.electronService.path.normalize(file.path);
+    const pathSegments = normalizedFilePath.split(this.electronService.path.sep);
     const projectName = pathSegments[0];
     const projectPath = this.electronService.path.join(projectsDirectory, projectName);
     return new Promise<void>((resolve, reject) => {
