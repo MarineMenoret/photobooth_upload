@@ -42,7 +42,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
     this.isLoading = false;
 
     this.subscriptions.push(
-      this.syncService.syncProjects$.subscribe((projects) => {
+      this.syncService.notifySyncProjects().subscribe((projects) => {
         this.syncProjects = projects;
         this.isLoading = false;
       })

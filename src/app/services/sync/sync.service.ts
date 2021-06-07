@@ -20,14 +20,14 @@ import {MatSnackBar} from "@angular/material/snack-bar";
   providedIn: 'root'
 })
 export class SyncService {
-  subscriptions: Array<Subscription>;
-  projectsCollection: AngularFirestoreCollection<IProject>;
-  projectsDirectory: string;
-  remoteProjects: Array<IProject>;
-  remoteProjects$: Subject<Array<IProject>>;
-  localProjects: Array<IProject>;
-  localProjects$: Subject<Array<IProject>>;
-  syncProjects$: Subject<Array<ISyncProject>>;
+  private subscriptions: Array<Subscription>;
+  private projectsCollection: AngularFirestoreCollection<IProject>;
+  private projectsDirectory: string;
+  private remoteProjects: Array<IProject>;
+  private remoteProjects$: Subject<Array<IProject>>;
+  private localProjects: Array<IProject>;
+  private localProjects$: Subject<Array<IProject>>;
+  private syncProjects$: Subject<Array<ISyncProject>>;
 
   constructor(private afs: AngularFirestore,
               private storage: AngularFireStorage,
@@ -61,6 +61,10 @@ export class SyncService {
         this.compareProjects();
       })
     );
+  }
+
+  notifySyncProjects(): Subject<Array<ISyncProject>> {
+    return this.syncProjects$;
   }
 
   async getSyncProjects(directoryPath: string): Promise<void> {
