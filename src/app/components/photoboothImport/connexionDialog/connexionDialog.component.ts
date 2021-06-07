@@ -42,7 +42,6 @@ export class ConnexionDialogComponent {
       this.photoboothProjects = await this.photoboothOperationsService.callApi('Projects', 'listProjects', { $limit: 100 });
       this.dialogRef.close();
 
-      //TODO : afficher seulement si la connexion est établie. Sinon afficher erreur d'authentictaion
       this.matDialog.open(PhotoboothProjectsListComponent, {
         data: {
           photoboothProjects: this.photoboothProjects['data'],
@@ -50,7 +49,6 @@ export class ConnexionDialogComponent {
           selectedProjectLocalPath: this.selectedProjectLocalPath
         },
         minWidth: '50%',
-        // height: '80%'
       });
     } else {
       this.showSnackbar("Invalid login information.", "mat-warn");

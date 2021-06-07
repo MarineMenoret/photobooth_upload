@@ -62,13 +62,13 @@ export class PhotoboothOperationsService {
       };
       let client = await this.swagger(hostname + '/swagger.json', options);
       this.api = client.apis;
-      if(this.auth_token !== undefined) return true;
-      else throw("401 Invalid login information");
-    } catch(e){
+      if (this.auth_token !== undefined) return true;
+      else throw ("401 Invalid login information");
+    } catch (e) {
       console.log("[ERROR] Photobooth Authentication failed: ", e);
       return false;
     }
-    
+
   };
 
   async callApi(tag, operation, parameters = null, payload = null) {
@@ -130,61 +130,78 @@ export class PhotoboothOperationsService {
    * @param projectPath : local project directory path
    */
   async createProject(projectPath, events) {
-    const tree = this.electronService.dirTree(projectPath);
+    try {
+      const tree = this.electronService.dirTree(projectPath);
 
-    //get experimental design :
-    console.log("WORKING ON PROJECT ", this.experimental_designs["name"]);
-    let name = this.experimental_designs["name"];
-    let signal_types = this.experimental_designs["signal_types"];
-    // let events = this.experimental_designs["events"];
-    let number_of_sessions = this.experimental_designs["number_of_sessions"];
-    let start_date = this.experimental_designs["start_date"];
-    let end_date = this.experimental_designs["end_date"];
-    let conditions = this.experimental_designs["conditions"];
-    let transformations = this.experimental_designs["transformations"];
-    let anchorFileDescriptionId = 5 // We start with observerXT if no anchor specified
-    if (this.experimental_designs["anchor"])
-      anchorFileDescriptionId = this.experimental_designs["anchor"];
+      //get experimental design :
+      console.log("WORKING ON PROJECT ", this.experimental_designs["name"]);
+      let name = this.experimental_designs["name"];
+      let signal_types = this.experimental_designs["signal_types"];
+      // let events = this.experimental_designs["events"]; //remplacé par events passé en paramètre
+      let number_of_sessions = this.experimental_designs["number_of_sessions"];
+      let start_date = this.experimental_designs["start_date"];
+      let end_date = this.experimental_designs["end_date"];
+      let conditions = this.experimental_designs["conditions"];
+      let transformations = this.experimental_designs["transformations"];
+      let anchorFileDescriptionId = 5 // We start with observerXT if no anchor specified
+      if (this.experimental_designs["anchor"])
+        anchorFileDescriptionId = this.experimental_designs["anchor"];
 
-    // let equipment_file_description_ids = new Set();
+      // let equipment_file_description_ids = new Set();
 
-    //Create project :
-    let project = await this.callApi('Projects', 'createProject', null, {
-      "name": name,
-      "description": "Imported Project",
-      "participations": 0,
-      "teams": 0,
-      "total_participants": 0,
-      "start_date": start_date,
-      "end_date": end_date,
-      "template_locked": false
-    });
-    await this.callApi('Projects', 'updateProject', { id: project.id }, {
-      "name": name,
-      "description": "Imported Project",
-      "participations": 0,
-      "teams": 0,
-      "total_participants": number_of_sessions,
-      "start_date": start_date,
-      "end_date": end_date,
-      "template_locked": false
-    });
-    console.log("STATUS ", "PROJECT CREATED");
+      //Create project :
+      let project;
+      try {
+        project = await this.callApi('Projects', 'createProject', null, {
+          "name": name,
+          "description": "Imported Project",
+          "participations": 0,
+          "teams": 0,
+          "total_participants": 0,
+          "start_date": start_date,
+          "end_date": end_date,
+          "template_locked": false
+        });
+        await this.callApi('Projects', 'updateProject', { id: project.id }, {
+          "name": name,
+          "description": "Imported Project",
+          "participations": 0,
+          "teams": 0,
+          "total_participants": number_of_sessions,
+          "start_date": start_date,
+          "end_date": end_date,
+          "template_locked": false
+        });
+        console.log("STATUS ", "PROJECT CREATED");
+      } catch (e) {
+        console.log("[ERROR] Project creation failed: ", e)
+      }
 
-    await this.associateProjectSignals(signal_types, project.id);
-    await this.associateProjectEvents(events, project.id);
+      if (signal_types) await this.associateProjectSignals(signal_types, project.id);
+      else throw ("[ERROR] Missing signal_types.")
 
-    if (transformations) {
-      await this.associateProjectTransformations(transformations, project.id)
+
+      await this.associateProjectEvents(events, project.id);
+
+      if (transformations) await this.associateProjectTransformations(transformations, project.id)
+
+      await this.associateProjectStimuli(tree, name, project.id)
+      await this.associateProjectConditions(conditions, number_of_sessions, project.id);
+
+      //Lock project :
+      try {
+        await this.callApi('Projects', 'patchProject', {
+          id: project.id
+        }, { "template_locked": true });
+        return true; // return true if project create, all associations made and project locked successfuly.
+      } catch (e) {
+        console.log("[ERROR] Failed to lock project.")
+      }
+    } catch (e) {
+      console.log(e);
+      return false;
     }
 
-    await this.associateProjectStimuli(tree, name, project.id) 
-    await this.associateProjectConditions(conditions, number_of_sessions, project.id);
-   
-    //Lock project :
-    await this.callApi('Projects', 'patchProject', {
-      id: project.id
-    }, { "template_locked": true });
   }
 
   /**
@@ -203,11 +220,16 @@ export class PhotoboothOperationsService {
         "version_id": signal_type.equipment_software_version_id
       }
       console.log("STATUS", "CALLING associateProjectSignals", "Project id : ", projectId, "Data :", associateProjectSignals_data)
-      await this.callApi('Projects', 'associateProjectSignals', {
-        projectId: projectId
-      }, associateProjectSignals_data)
-      // equipment_file_description_ids.add(signal_type.equipment_file_description_id);
-      console.log("STATUS ", "SIGNAL CREATED, ABSTRACT_TYPE : ", signal_type.id);
+
+      try {
+        await this.callApi('Projects', 'associateProjectSignals', {
+          projectId: projectId
+        }, associateProjectSignals_data)
+        // equipment_file_description_ids.add(signal_type.equipment_file_description_id);
+        console.log("STATUS ", "SIGNAL CREATED, ABSTRACT_TYPE : ", signal_type.id);
+      } catch (e) {
+        console.log("[ERROR] Project signals association failed: ", e);
+      }
     }
   }
 
@@ -217,32 +239,51 @@ export class PhotoboothOperationsService {
    * @param projectId 
    */
   async associateProjectEvents(events, projectId) {
+    console.log("events :", events);
     for (let event of events) {
       let eventName = "";
-      if (event.name !== null) {
+      if (event.name !== undefined) {
         eventName = event.name;
       } else {
-        eventName = event.start_marker.replace('_start', '');
+        const regex = /_start/i;
+        console.log("regex.test(event.start_marker) : ", regex.test(event.start_marker))
+        if(regex.test(event.start_marker)){
+          eventName = event.start_marker.replace(regex, '');
+        }else{
+          eventName = event.start_marker;
+        }
       }
-      let eventDB = await this.callApi('Events', 'createEvent', {
-        projectId: projectId
-      }, {
-        "name": eventName,
-        "start_marker": event.start_marker,
-        "end_marker": event.end_marker,
-        "software_id": event.equipment_software_id,
-        "version_id": event.equipment_software_version_id,
-        "time": 1538686663567
-      })
-      await this.callApi('Projects', 'associateProjectEvents', {
-        projectId: projectId
-      }, {
-        "id": eventDB.id,
-        "software_id": event.equipment_software_id,
-        "version_id": event.equipment_software_version_id
-      })
-      console.log("STATUS ", "EVENT CREATED, START_MARKER : ", event.start_marker, " equipment_software_version_id : ", event.equipment_software_version_id, "eventName: ", eventName);
-      // equipment_file_description_ids.add(event.equipment_file_description_id);
+
+      console.log("eventName: ", eventName);
+
+      let eventDB;
+      try {
+        eventDB = await this.callApi('Events', 'createEvent', {
+          projectId: projectId
+        }, {
+          "name": eventName,
+          "start_marker": event.start_marker,
+          "end_marker": event.end_marker,
+          "software_id": event.equipment_software_id,
+          "version_id": event.equipment_software_version_id,
+          "time": 1538686663567
+        })
+      } catch (e) {
+        console.log("[ERROR] Project event creation failed: ", e);
+      }
+      try{
+        await this.callApi('Projects', 'associateProjectEvents', {
+          projectId: projectId
+        }, {
+          "id": eventDB.id,
+          "software_id": event.equipment_software_id,
+          "version_id": event.equipment_software_version_id
+        })
+        console.log("STATUS ", "EVENT CREATED, START_MARKER : ", event.start_marker, " equipment_software_version_id : ", event.equipment_software_version_id, "eventName: ", eventName);
+        // equipment_file_description_ids.add(event.equipment_file_description_id);
+      } catch (e) {
+        console.log("[ERROR] Project events association failed: ", e);
+      }
     }
   }
 
@@ -253,11 +294,15 @@ export class PhotoboothOperationsService {
    */
   async associateProjectTransformations(transformations, projectId) {
     for (let transformationId of transformations) {
-      await this.callApi('Projects', 'associateProjectTransformations', {
-        projectId: projectId
-      }, {
-        transformation_id: transformationId
-      })
+      try {
+        await this.callApi('Projects', 'associateProjectTransformations', {
+          projectId: projectId
+        }, {
+          transformation_id: transformationId
+        })
+      } catch (e) {
+        console.log("[ERROR] Project transformation association failed: ", e);
+      }
     }
   }
 
@@ -298,16 +343,21 @@ export class PhotoboothOperationsService {
               end_marker: this.electronService.uuidv4(),
               file: this.electronService.fs.createReadStream(stimuli_file_path)
             };
-            let stimuli: any = await this.callRequest('/stimuli/', data);
-            console.log("Created Stimuli:", stimuli)
-            await this.callApi('Projects', 'associateProjectStimuli', {
-              projectId: projectId
-            }, {
-              "id": JSON.parse(stimuli).id,
-              "software_id": 13,
-              "version_id": 1,
-            })
-            console.log("STATUS ", "STIMULI CREATED, TOKEN : ", stimuli_file_name);
+            let stimuli: any;
+            try {
+              stimuli = await this.callRequest('/stimuli/', data);
+              console.log("Created Stimuli:", stimuli)
+              await this.callApi('Projects', 'associateProjectStimuli', {
+                projectId: projectId
+              }, {
+                "id": JSON.parse(stimuli).id,
+                "software_id": 13,
+                "version_id": 1,
+              })
+              console.log("STATUS ", "STIMULI CREATED, TOKEN : ", stimuli_file_name);
+            } catch (e) {
+              console.log("[ERROR] Project stimuli association failed: ", e);
+            }
           }
         }
       }
@@ -321,15 +371,20 @@ export class PhotoboothOperationsService {
    * @param projectId 
    */
   async associateProjectConditions(conditions, number_of_sessions, projectId) {
-    let condition = await this.callApi('Conditions', 'createCondition', null, {
-      "name": conditions[0].name,
-      "nbr_participations": number_of_sessions,
-    })
-    console.log("STATUS ", "CONDITION CREATED");
+    try {
+      let condition = await this.callApi('Conditions', 'createCondition', null, {
+        "name": conditions[0].name,
+        "nbr_participations": number_of_sessions,
+      })
 
-    await this.callApi('Projects', 'associateProjectConditions', {
-      projectId: projectId
-    }, { id: condition.id })
+      await this.callApi('Projects', 'associateProjectConditions', {
+        projectId: projectId
+      }, { id: condition.id })
+
+      console.log("STATUS ", "CONDITION CREATED");
+    } catch (e) {
+      console.log("[ERROR] Project conditions association failed: ", e);
+    }
 
   }
 
@@ -373,7 +428,7 @@ export class PhotoboothOperationsService {
         status = 'noShow'
         participantPresent = false;
       }
-      
+
       /* Create session: */
       let session;
       try {
@@ -412,41 +467,55 @@ export class PhotoboothOperationsService {
       let participantRaw = null;
       let participantRawData = [];
       if (participantEmail != '') {
-        participantRaw = await this.callApi('Participants', 'getParticipants', { "email": participantEmail });
-        participantRawData = participantRaw.data;
+        try {
+          participantRaw = await this.callApi('Participants', 'getParticipants', { "email": participantEmail });
+          participantRawData = participantRaw.data;
+        } catch (e) {
+          console.log("[ERROR] Get participants failed: ", e);
+
+        }
       }
       if (participantRawData.length) {
         console.log("INFO ", "[Found existing participant (id):]", participantRawData[0].id)
         participantId = participantRawData[0].id;
       } else if (participantRawData.length == 0 && participantEmail != '') {
-        await this.callApi('Participants', 'createParticipant', null, {
-          "email": participantEmail,
-          "sex": "F",
-          "birthyear": "2019",
-          "language": "fr"
-        });
-        participantRaw = await this.callApi('Participants', 'getParticipants', { "email": participantEmail });
-        participantRawData = participantRaw.data;
-        console.log("INFO ", "[New participant created (id):]", participantRawData[0].id)
-        participantId = participantRawData[0].id;
+        try {
+          await this.callApi('Participants', 'createParticipant', null, {
+            "email": participantEmail,
+            "sex": "F",
+            "birthyear": "2019",
+            "language": "fr"
+          });
+          participantRaw = await this.callApi('Participants', 'getParticipants', { "email": participantEmail });
+          participantRawData = participantRaw.data;
+          console.log("INFO ", "[New participant created (id):]", participantRawData[0].id)
+          participantId = participantRawData[0].id;
+        } catch (e) {
+          console.log("[ERROR] Participant creation failed: ", e);
+        }
       }
-      
+
       /* Update session: */
-      session = await this.callApi('Sessions', 'updateSession', {
-        id: session.id
-      }, {
-        "id": 0,
-        "name": "Session " + i,
-        "booking_start_time": 0,
-        "booking_end_time": 1,
-        "start_time": 0,
-        "end_time": 1,
-        "pretest": 0,
-        "project_id": projectId,
-        "participant_id": participantId,
-        "status": status
-      });
-      console.log("STATUS ", "PARTICIPATION CREATED n# ", i + 1);
+      try {
+        session = await this.callApi('Sessions', 'updateSession', {
+          id: session.id
+        }, {
+          "id": 0,
+          "name": "Session " + i,
+          "booking_start_time": 0,
+          "booking_end_time": 1,
+          "start_time": 0,
+          "end_time": 1,
+          "pretest": 0,
+          "project_id": projectId,
+          "participant_id": participantId,
+          "status": status
+        });
+        console.log("STATUS ", "PARTICIPATION CREATED n# ", i + 1);
+      } catch (e) {
+        console.log("[ERROR] Session updating failed: ", e);
+
+      }
 
 
       /* Upload files: */
