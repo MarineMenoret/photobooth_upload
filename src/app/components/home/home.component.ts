@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from "@angular/core";
 import { DirectoryTreeService } from "../../services/directory-tree/directory-tree.service";
-import { ElectronService } from "../../core/services/electron/electron.service";
+import { ElectronService } from "../../core/services";
 import { Subscription } from "rxjs";
 import { AuthService } from "../../services/auth/auth.service";
 import { StorageService } from "../../services/storage/storage.service";

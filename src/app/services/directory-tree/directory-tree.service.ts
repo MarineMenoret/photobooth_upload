@@ -1,14 +1,16 @@
-import { Injectable, OnDestroy } from '@angular/core';
-import { AngularFirestore, AngularFirestoreCollection, DocumentReference } from '@angular/fire/firestore';
-import { Subject, Subscription } from 'rxjs';
-import { finalize } from 'rxjs/operators';
-import { ElectronService } from '../../core/services/electron/electron.service';
-import { StorageService } from '../../services/storage/storage.service';
-import { IDirectoryTree } from '../../shared/interfaces/directory-tree';
-import { IProject } from '../../shared/interfaces/project';
+import {Injectable, OnDestroy} from '@angular/core';
+import {AngularFirestore, AngularFirestoreCollection, DocumentReference} from '@angular/fire/firestore';
+import {Subject, Subscription} from 'rxjs';
+import {finalize} from 'rxjs/operators';
+import {ElectronService} from '../../core/services';
+import {StorageService} from '../storage/storage.service';
+import {IDirectoryTree} from '../../shared/interfaces/directory-tree';
+import {IProject} from '../../shared/interfaces/project';
 import * as fs from 'fs';
 import * as path from 'path';
-import { IFile } from '../../shared/interfaces/file';
+import {IFile} from '../../shared/interfaces/file';
+import firebase from "firebase";
+import Timestamp = firebase.firestore.Timestamp;
 
 @Injectable({
   providedIn: 'root'
@@ -22,12 +24,12 @@ export class DirectoryTreeService implements OnDestroy {
   files: Array<IFile>;
   directoryTree: IDirectoryTree;
   numberOfFilesUploaded: number;
-  uploadTasks: Array<any>;;
+  uploadTasks: Array<any>;
   uploadPercentage: Object;
   getUploadPercentageSub: Array<Subscription>;
   getUploadStatusSub: Array<Subscription>;
   uploadFinalized$: Subject<boolean> = new Subject();
-  uploadStatusMsg$: Subject<string> = new Subject();;
+  uploadStatusMsg$: Subject<string> = new Subject();
   uploadCanceled: boolean;
   projectsCollection: AngularFirestoreCollection<IProject>;
 
@@ -60,7 +62,7 @@ export class DirectoryTreeService implements OnDestroy {
     this.directoryPath = directoryPath;
     this.directory = this.path.basename(directoryPath);
     this.directoryTree = await this.buildTree(directoryPath);
-    return this.directoryTree
+    return this.directoryTree;
   }
 
   getFileNames(): Array<string> {
@@ -69,16 +71,20 @@ export class DirectoryTreeService implements OnDestroy {
     return fileNames;
   }
 
+  getFiles(): Array<IFile> {
+    return this.files;
+  }
+
   async buildTree(elementPath: string): Promise<IDirectoryTree> {
-    let result = {} as IDirectoryTree;
-    let elementName = this.path.basename(elementPath);
+    const result = {} as IDirectoryTree;
+    const elementName = this.path.basename(elementPath);
 
     if (this.fs.lstatSync(elementPath).isDirectory()) {
-      let childElements = this.fs.readdirSync(elementPath);
+      const childElements = this.fs.readdirSync(elementPath);
       result["name"] = elementName;
       for (let i = 0; i < childElements.length; i++) {
-        let childElementPath = this.path.join(elementPath, childElements[i]);
-        let childResult = await this.buildTree(childElementPath);
+        const childElementPath = this.path.join(elementPath, childElements[i]);
+        const childResult = await this.buildTree(childElementPath);
         if (!result["children"]) {
           result["children"] = [];
         }
@@ -90,6 +96,7 @@ export class DirectoryTreeService implements OnDestroy {
 
       const file: IFile = {
         name: elementName,
+        creationDate: Timestamp.fromDate(this.fs.statSync(elementPath).birthtime),
         path: this.findRelativePath(elementPath),
         size: this.fs.statSync(elementPath).size,
         sha256: await this.hashfile(elementPath)
@@ -118,9 +125,10 @@ export class DirectoryTreeService implements OnDestroy {
   }
 
   findRelativePath(absolutePath: string): string {
-    const pathSegments = absolutePath.split(this.path.sep);
+    const normalizedAbsolutePath = this.path.normalize(absolutePath);
+    const pathSegments = normalizedAbsolutePath.split(this.path.sep);
     const relativePathSegments = pathSegments.slice(pathSegments.indexOf(this.directory));
-    return this.path.join(...relativePathSegments);
+    return this.path.join(...relativePathSegments).replace(/\\/g, '/');
   }
 
   uploadFile(path: string): void {
@@ -130,7 +138,7 @@ export class DirectoryTreeService implements OnDestroy {
     const absolutePath = path.substring(path.indexOf(this.directory));
     const relativePath = this.findRelativePath(absolutePath);
 
-    let task = this.storageService.uploadFile(relativePath, file, fileExtension);
+    const task = this.storageService.uploadFile(relativePath, file, fileExtension);
     this.uploadTasks.push(task);
 
     this.getUploadPercentageSub.push(
@@ -138,7 +146,7 @@ export class DirectoryTreeService implements OnDestroy {
         .subscribe(uploadPercentage => {
           this.uploadPercentage[fileName] = uploadPercentage;
         })
-    )
+    );
 
 
     this.getUploadStatusSub.push(
@@ -152,11 +160,12 @@ export class DirectoryTreeService implements OnDestroy {
           }
         })
       ).subscribe(
-        res => { }, err => {
+        res => {
+        }, err => {
           this.uploadStatusMsg$.next('Error during files upload. Please retry.');
         }
       )
-    )
+    );
   }
 
   cancelUpload(): boolean {
@@ -177,7 +186,7 @@ export class DirectoryTreeService implements OnDestroy {
     return {
       uploadFinalized: this.uploadFinalized$,
       uploadStatusMsg: this.uploadStatusMsg$
-    }
+    };
   }
 
   buildRelativeTree(directoryTree: IDirectoryTree): IDirectoryTree {
@@ -185,7 +194,7 @@ export class DirectoryTreeService implements OnDestroy {
       directoryTree.path = this.findRelativePath(directoryTree.path);
       return directoryTree;
     } else {
-      directoryTree.children.forEach((child: IDirectoryTree) => this.buildRelativeTree(child));
+      directoryTree.children?.forEach((child: IDirectoryTree) => this.buildRelativeTree(child));
       return directoryTree;
     }
   }
@@ -198,10 +207,10 @@ export class DirectoryTreeService implements OnDestroy {
 
     const project: IProject = {
       name: directoryTree.name,
-      creationDate: new Date(),
+      creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(this.directoryPath).birthtime),
       directoryTree: relativeDirectoryTree,
       files: this.files
-    }
+    };
 
     return this.projectsCollection.add(project);
   }
@@ -211,13 +220,19 @@ export class DirectoryTreeService implements OnDestroy {
       const sha256Hash = this.electronService.crypto.createHash('sha256');
       const stream = this.electronService.fs.createReadStream(path);
 
-      stream.on('data', (data) => { sha256Hash.update(data); });
-      stream.on('end', () => { resolve(sha256Hash.digest('hex')); });
-      stream.on('error', (error) => { reject(error); })
-    })
+      stream.on('data', (data) => {
+        sha256Hash.update(data);
+      });
+      stream.on('end', () => {
+        resolve(sha256Hash.digest('hex'));
+      });
+      stream.on('error', (error) => {
+        reject(error);
+      });
+    });
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     if (this.getUploadPercentageSub.length > 0) {
       for (let i = 0; i < this.getUploadPercentageSub.length; i++) {
         this.getUploadPercentageSub[i].unsubscribe();

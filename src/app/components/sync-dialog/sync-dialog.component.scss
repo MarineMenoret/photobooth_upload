@@ -1,0 +1,11 @@
+mat-dialog-content {
+  mat-radio-group.radio-group {
+    display: flex;
+    flex-direction: column;
+    margin: 15px 0;
+
+    mat-radio-button.radio-button {
+      margin: 5px;
+    }
+  }
+}

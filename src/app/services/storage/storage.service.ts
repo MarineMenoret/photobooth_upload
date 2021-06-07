@@ -105,12 +105,12 @@ export class StorageService {
           );
           item.getDownloadURL()
             .then(url => this.downloadFile(url, filePath, item.name))
-            .catch(error => console.log(error))
-        })
+            .catch(error => console.log(error));
+        });
 
         result.prefixes.forEach((prefixe) => {
-          this.getFiles(prefixe, path)
-        })
+          this.getFiles(prefixe, path);
+        });
       })
       .catch(error => console.log(error));
   }
@@ -120,7 +120,7 @@ export class StorageService {
       .get()
       .then((querySnapshot) => {
         if (querySnapshot.empty) {
-          console.log("Project structure not found!")
+          console.log("Project structure not found!");
         } else {
           this.files = querySnapshot.docs[0].data().files;
           const paths = Array<string>();
@@ -134,7 +134,7 @@ export class StorageService {
   }
 
   getFileNames(paths: Array<string>): void {
-    let fileNames = new Array<string>();
+    const fileNames = new Array<string>();
 
     paths.forEach((path) => {
       fileNames.push(path.split('/').pop());
@@ -153,12 +153,12 @@ export class StorageService {
       this.electronService.fs.mkdirSync(directory, { recursive: true });
     }
 
-    let req = this.electronService.request({
+    const req = this.electronService.request({
       method: 'GET',
       uri: file_url
     });
 
-    let out = this.electronService.fs.createWriteStream(path);
+    const out = this.electronService.fs.createWriteStream(path);
     req.pipe(out);
 
     req.on('response', (data) => {
@@ -209,11 +209,11 @@ export class StorageService {
 
       stream.on('data', (data) => { sha256Hash.update(data); });
       stream.on('end', () => { resolve(sha256Hash.digest('hex')); });
-      stream.on('error', (error) => { reject(error); })
-    })
+      stream.on('error', (error) => { reject(error); });
+    });
   }
 
   ngOnDestroy() {
-    this.subscriptions.forEach(subscription => subscription.unsubscribe);
+    this.subscriptions.forEach(subscription => subscription.unsubscribe());
   }
 }
