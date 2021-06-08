@@ -155,6 +155,30 @@ describe("Photobooth upload", () => {
         await firebase.assertFails(testDoc.set({content: "before"}));
     });
 
+    it("Super admin can query all admin role users", async() => {
+        const db = getAdminFirestore();
+        const testDoc = db.collection("admins");
+        await firebase.assertSucceeds(testDoc.get());
+    });
+
+    it("Admin can't query all admin role users", async() => {
+        const db = getFirestore(adminAuth);
+        const testDoc = db.collection("admins");
+        await firebase.assertFails(testDoc.get());
+    });
+
+    it("Can't query all admin role users", async() => {
+        const db = getFirestore(myAuth);
+        const testDoc = db.collection("admins");
+        await firebase.assertFails(testDoc.get());
+    });
+
+    it("Can't query all admin role users if not logged in", async() => {
+        const db = getFirestore(null);
+        const testDoc = db.collection("admins");
+        await firebase.assertFails(testDoc.get());
+    });
+
     it("Admin role can write to a user document with a different ID as our user", async() => {
         const db = getFirestore(adminAuth);
         const testDoc = db.collection("users").doc(myId);
@@ -175,6 +199,25 @@ describe("Photobooth upload", () => {
         const db = getFirestore(adminAuth);
         const testQuery = db.collection("projects");
         await firebase.assertSucceeds(testQuery.get());
+    });
+
+    // DELETE
+    it("Can't delete someone's project", async() => {
+        const db = getFirestore(null);
+        const testDoc = db.collection("projects").doc("project123");
+        await firebase.assertFails(testDoc.delete());
+    });
+
+    it("Can delete own project", async() => {
+        const db = getFirestore(myAuth);
+        const testDoc = db.collection("projects").doc("project_abc");
+        await firebase.assertSucceeds(testDoc.delete());
+    });
+
+    it("Admin can delete anyone's project", async() => {
+        const db = getFirestore(adminAuth);
+        const testDoc = db.collection("projects").doc("project_xyz");
+        await firebase.assertSucceeds(testDoc.delete());
     });
 
 });
