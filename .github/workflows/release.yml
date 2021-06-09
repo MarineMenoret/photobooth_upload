@@ -129,7 +129,6 @@ jobs:
           echo "The sha: "
           echo "${{env.COMMIT_SHA}}"
           mkdir bob
-          cp index.js bob
           Compress-Archive bob bob.zip
       - name: Printing bob dir
         run: |
