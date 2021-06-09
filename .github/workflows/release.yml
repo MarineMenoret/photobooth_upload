@@ -129,9 +129,9 @@ jobs:
           echo "The sha: "
           echo "${{env.COMMIT_SHA}}"
           mkdir bob
-          cp main.ts bob
-          Compress-Archive bob bob.zip
-          Remove-Item -LiteralPath './bob'
+          cp main.ts test
+          Compress-Archive test test.zip
+          Remove-Item -LiteralPath 'test' -Force -Recurse
       - name: Printing bob dir
         run: |
           dir
@@ -152,6 +152,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./bob.zip
-          asset_name: bob.zip
+          asset_path: ./test.zip
+          asset_name: test.zip
           asset_content_type: application/zip
