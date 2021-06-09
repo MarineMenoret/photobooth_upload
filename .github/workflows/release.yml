@@ -128,6 +128,7 @@ jobs:
         run: |
           echo "The sha: "
           echo "${{env.COMMIT_SHA}}"
+          npm install
           npm run electron:build
           mkdir test
           cp main.ts test
