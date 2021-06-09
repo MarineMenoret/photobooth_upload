@@ -71,6 +71,40 @@ on:
 #           draft: true
 #           prerelease: false
 
+# jobs:
+#   build:
+#     name: Create Release
+#     runs-on: windows-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v2
+#       - name: Fetching version from package.json
+#         shell: pwsh
+#         run: |
+#           $version = node -p "require('./package.json').version"
+#           echo "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+#       - name: Release version number
+#         run: |
+#           echo "${{ env.VERSION }}"
+#       - name : Getting commit hash
+#         shell: bash
+#         run: |
+#           echo "COMMIT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+#       - name: Printing commit hash 8 first characters
+#         run: |
+#           echo "The sha: "
+#           echo "${{env.COMMIT_SHA}}"
+#       - name: Create Release
+#         id: create_release
+#         uses: actions/create-release@v1
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token comes from package.json
+#         with:
+#           tag_name: v${{env.VERSION}} - ${{env.COMMIT_SHA}} # ex: v1.0.0-abcd1234
+#           release_name: v${{env.VERSION}} - ${{env.COMMIT_SHA}} # same as tag_name
+#           draft: true
+#           prerelease: false
+
 jobs:
   build:
     name: Create Release
@@ -94,13 +128,29 @@ jobs:
         run: |
           echo "The sha: "
           echo "${{env.COMMIT_SHA}}"
+          mkdir bob
+          cp index.js bob
+          Compress-Archive bob bob.zip
+      - name: Printing bob dir
+        run: |
+          dir
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token comes from package.json
         with:
-          tag_name: v${{env.VERSION}} - ${{env.COMMIT_SHA}} # ex: v1.0.0-abcd1234
-          release_name: v${{env.VERSION}} - ${{env.COMMIT_SHA}} # same as tag_name
+          tag_name: v${{env.VERSION}}-${{env.COMMIT_SHA}} # ex: v1.0.0-abcd1234
+          release_name: v${{env.VERSION}}-${{env.COMMIT_SHA}} # same as tag_name
           draft: true
-          prerelease: false
+          prerelease: false     
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./bob.zip
+          asset_name: bob.zip
+          asset_content_type: application/zip
