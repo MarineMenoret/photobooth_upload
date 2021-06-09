@@ -124,11 +124,13 @@ export class DirectoryTreeService implements OnDestroy {
     }
   }
 
-  findRelativePath(absolutePath: string): string {
-    const normalizedAbsolutePath = this.path.normalize(absolutePath);
-    const pathSegments = normalizedAbsolutePath.split(this.path.sep);
-    const relativePathSegments = pathSegments.slice(pathSegments.indexOf(this.directory));
-    return this.path.join(...relativePathSegments).replace(/\\/g, '/');
+  findRelativePath(absoluteFilePath: string): string {
+    const absoluteNormalizedFilePath = this.path.normalize(absoluteFilePath);
+    const absoluteNormalizedDirectoryPath = this.path.normalize(this.directoryPath);
+    const absoluteFilePathSegments = absoluteNormalizedFilePath.split(this.path.sep);
+    const absoluteDirectoryPathSegments = absoluteNormalizedDirectoryPath.split(this.path.sep);
+    const relativeFilePathSegments = absoluteFilePathSegments.slice(absoluteDirectoryPathSegments.length - 1);
+    return this.path.join(...relativeFilePathSegments).replace(/\\/g, '/');
   }
 
   uploadFile(path: string): void {

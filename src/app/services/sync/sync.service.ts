@@ -82,7 +82,7 @@ export class SyncService {
 
       if (this.electronService.fs.lstatSync(childPath).isDirectory()) {
         this.directoryTreeService.initialize();
-        this.directoryTreeService.directory = child;
+        this.directoryTreeService.directoryPath = childPath;
 
         const project: IProject = {
           name: child,
