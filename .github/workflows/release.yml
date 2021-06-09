@@ -128,7 +128,7 @@ jobs:
         run: |
           echo "The sha: "
           echo "${{env.COMMIT_SHA}}"
-          mkdir bob
+          mkdir test
           cp main.ts test
           Compress-Archive test test.zip
           Remove-Item -LiteralPath 'test' -Force -Recurse
