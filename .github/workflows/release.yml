@@ -131,7 +131,7 @@ jobs:
           mkdir bob
           cp main.ts bob
           Compress-Archive bob bob.zip
-          Remove-Item -LiteralPath bob
+          Remove-Item -LiteralPath 'bob'
       - name: Printing bob dir
         run: |
           dir
