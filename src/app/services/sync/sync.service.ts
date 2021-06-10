@@ -98,6 +98,18 @@ export class SyncService {
     this.localProjects$.next(projects);
   }
 
+  public async getChildrenDirPath(parentDirectoryPath: string) {
+    const directoryChildren = this.electronService.fs.readdirSync(parentDirectoryPath);
+    let childrenDirData = {};
+
+    for (const child of directoryChildren) {
+      const childPath = this.electronService.path.join(parentDirectoryPath, child);
+      childrenDirData[child] = childPath;
+    }
+
+    return childrenDirData;
+  }
+
   private getRemoteProjects(): void {
     const projects = new Array<IProject>();
     const projectsSubscription = this.projectsCollection.get()
