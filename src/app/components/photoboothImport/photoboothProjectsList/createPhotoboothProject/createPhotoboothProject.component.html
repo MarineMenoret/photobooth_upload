@@ -1,4 +1,8 @@
   <mat-card>
+    <div class="progress-spinner-container" *ngIf="isCreating">
+      <mat-spinner></mat-spinner>
+    </div>
+
     <mat-card-title>Enter project events :</mat-card-title>
     <div>
       <hot-table #hotTable class="hot-table" licenseKey='non-commercial-and-evaluation' [rowHeaders]="true" [startRows]= 5 [data]="events">
@@ -11,6 +15,6 @@
       </hot-table>
     </div>
   </mat-card>
-  <button mat-raised-button (click)="onCreateProject(hotTable)">
+  <button mat-raised-button (click)="onCreateProject(hotTable)" [disabled]="isCreating">
     <mat-icon mat-list-icon>create_new_folder</mat-icon> Create project
   </button>
