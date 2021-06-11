@@ -404,191 +404,199 @@ export class PhotoboothOperationsService {
     let numberOfAllSessions = 0;
     let participantsNames = [];
 
-    /* Get basic data from selected project directory: */
-    for (let project_node_directory of tree.children) {
-      if (project_node_directory.name == projectName) {
-        numberOfAllSessions = this.findNumberOfParticipant(project_node_directory);
-        participantsNames = this.findParticipantsName(project_node_directory);
-        let metaDataNode = this.findMetaDataNode(project_node_directory);
-        let emails = await this.findEmailsData(metaDataNode);
-        if (emails) {
-          participantsEmails = emails;
-        }
-      }
-    }
-
-    /* determine if participant was present: */
-    console.log("numberOfAllSessions :", numberOfAllSessions);
-    for (let i = 0; i < numberOfAllSessions; i++) {
-      let participantName = this.buildParticipantName(i);
-      let status = "valid";
-      let participantPresent = true;
-
-      if (!participantsNames.includes(participantName)) {
-        status = 'noShow'
-        participantPresent = false;
-      }
-
-      /* Create session: */
-      let session;
-      try {
-        session = await this.callApi('Sessions', 'createSession', null, {
-          "name": "Session " + i,
-          "booking_start_time": 0,
-          "booking_end_time": 1,
-          "start_time": 0,
-          "end_time": 1,
-          "pretest": 0,
-          "project_id": projectId
-        });
-      } catch (e) {
-        console.log(e);
-      }
-
-      /* Create participant: */
-      let participantId = 1;
-      let participantEmail = '';
-      if (participantsEmails) {
-        if (participantsEmails.length) {
-          console.log("INFO ", "[Looking if email available for participant]")
-          for (let pmail of participantsEmails) {
-            if (pmail.email != "" && pmail.p == participantName) {
-              participantEmail = pmail.email;
-              console.log("INFO ", "Found Email for participant ", participantEmail)
-            }
+    try{
+      /* Get basic data from selected project directory: */
+      for (let project_node_directory of tree.children) {
+        if (project_node_directory.name == projectName) {
+          numberOfAllSessions = this.findNumberOfParticipant(project_node_directory);
+          participantsNames = this.findParticipantsName(project_node_directory);
+          let metaDataNode = this.findMetaDataNode(project_node_directory);
+          let emails = await this.findEmailsData(metaDataNode);
+          if (emails) {
+            participantsEmails = emails;
           }
         }
-        else {
-          console.log("INFO ", "[No emails found for participants]")
-        }
       }
 
-      // Check if participant already exist in DB and if existing, change it's participantId:
-      let participantRaw = null;
-      let participantRawData = [];
-      if (participantEmail != '') {
-        try {
-          participantRaw = await this.callApi('Participants', 'getParticipants', { "email": participantEmail });
-          participantRawData = participantRaw.data;
-        } catch (e) {
-          console.log("[ERROR] Get participants failed: ", e);
+      /* determine if participant was present: */
+      console.log("numberOfAllSessions :", numberOfAllSessions);
+      for (let i = 0; i < numberOfAllSessions; i++) {
+        let participantName = this.buildParticipantName(i);
+        let status = "valid";
+        let participantPresent = true;
 
+        if (!participantsNames.includes(participantName)) {
+          status = 'noShow'
+          participantPresent = false;
         }
-      }
-      if (participantRawData.length) {
-        console.log("INFO ", "[Found existing participant (id):]", participantRawData[0].id)
-        participantId = participantRawData[0].id;
-      } else if (participantRawData.length == 0 && participantEmail != '') {
+
+        /* Create session: */
+        let session;
         try {
-          await this.callApi('Participants', 'createParticipant', null, {
-            "email": participantEmail,
-            "sex": "F",
-            "birthyear": "2019",
-            "language": "fr"
+          session = await this.callApi('Sessions', 'createSession', null, {
+            "name": "Session " + i,
+            "booking_start_time": 0,
+            "booking_end_time": 1,
+            "start_time": 0,
+            "end_time": 1,
+            "pretest": 0,
+            "project_id": projectId
           });
-          participantRaw = await this.callApi('Participants', 'getParticipants', { "email": participantEmail });
-          participantRawData = participantRaw.data;
-          console.log("INFO ", "[New participant created (id):]", participantRawData[0].id)
-          participantId = participantRawData[0].id;
         } catch (e) {
-          console.log("[ERROR] Participant creation failed: ", e);
+          console.log(e);
         }
-      }
 
-      /* Update session: */
-      try {
-        session = await this.callApi('Sessions', 'updateSession', {
-          id: session.id
-        }, {
-          "id": 0,
-          "name": "Session " + i,
-          "booking_start_time": 0,
-          "booking_end_time": 1,
-          "start_time": 0,
-          "end_time": 1,
-          "pretest": 0,
-          "project_id": projectId,
-          "participant_id": participantId,
-          "status": status
-        });
-        console.log("STATUS ", "PARTICIPATION CREATED n# ", i + 1);
-      } catch (e) {
-        console.log("[ERROR] Session updating failed: ", e);
-
-      }
-
-
-      /* Upload files: */
-      if (isUploadFiles) {
-        console.log("UPLOADING FILES");
-        for (let equipment_file_description_id of equipment_file_description_ids) {
-          let folder_name = this.equipment_file_description_id_directory[equipment_file_description_id].toLowerCase();
-          console.log("[Looking for foldername]: ", folder_name, " [FOR FILE_DESCRIPTION_ID] ", equipment_file_description_id)
-
-          let tree = this.dirTree(projectsDataPath);
-          for (let project_node of tree.children) {
-            if (project_node.name == projectName) {
-              let data_node = this.findDataNode(project_node);
-              let session_node;
-              for (let participantFolder of data_node.children) {
-                if (participantFolder.name == participantName) {
-                  session_node = participantFolder;
-                }
+        /* Create participant: */
+        let participantId = 1;
+        let participantEmail = '';
+        if (participantsEmails) {
+          if (participantsEmails.length) {
+            console.log("INFO ", "[Looking if email available for participant]")
+            for (let pmail of participantsEmails) {
+              if (pmail.email != "" && pmail.p == participantName) {
+                participantEmail = pmail.email;
+                console.log("INFO ", "Found Email for participant ", participantEmail)
               }
+            }
+          }
+          else {
+            console.log("INFO ", "[No emails found for participants]")
+          }
+        }
 
-              if (participantPresent) {
-                let folderFound = false;
-                if (session_node != undefined) {
-                  for (let software_node of session_node.children) {
-                    if (software_node.name.toLowerCase() == folder_name) {
-                      folderFound = true;
-                      if (software_node.children[0] == undefined)
-                        console.log('FILE NOT FOUND INSIDE THE FOLDER : ', software_node)
-                      else {
-                        let file_path = software_node.children[0].path;
-                        console.log("DATA FILE PATH : ", file_path)
-                        let file_extension = file_path.slice((file_path.lastIndexOf(".") - 1 >>> 0) + 2);
-                        let file_name = software_node.children[0].name.replace(/[^a-zA-Z.\d:]/g, '');
-                        console.log("ORIGINAL NAME:", software_node.children[0].name);
-                        console.log("SAFE NAME:", file_name);
-                        var data = {
-                          file_extension: file_extension,
-                          file_name: file_name,
-                          file_description_id: equipment_file_description_id,
-                          file: this.fs.createReadStream(this.path.normalize(file_path))
-                        };
-                        let uploaded = false;
-                        while (!uploaded) {
-                          try {
-                            await this.callRequest('/participations/' + session.participations.id + '/upload', data);
-                            uploaded = true;
-                            console.log("UPLOAD SUCCESSFULL, reuploading in 1sec")
-                          } catch (e) {
-                            console.error("UPLOAD FAILED, reuploading in 1sec")
-                            this.wait(1000);
+        // Check if participant already exist in DB and if existing, change it's participantId:
+        let participantRaw = null;
+        let participantRawData = [];
+        if (participantEmail != '') {
+          try {
+            participantRaw = await this.callApi('Participants', 'getParticipants', { "email": participantEmail });
+            participantRawData = participantRaw.data;
+          } catch (e) {
+            console.log("[ERROR] Get participants failed: ", e);
+
+          }
+        }
+        if (participantRawData.length) {
+          console.log("INFO ", "[Found existing participant (id):]", participantRawData[0].id)
+          participantId = participantRawData[0].id;
+        } else if (participantRawData.length == 0 && participantEmail != '') {
+          try {
+            await this.callApi('Participants', 'createParticipant', null, {
+              "email": participantEmail,
+              "sex": "F",
+              "birthyear": "2019",
+              "language": "fr"
+            });
+            participantRaw = await this.callApi('Participants', 'getParticipants', { "email": participantEmail });
+            participantRawData = participantRaw.data;
+            console.log("INFO ", "[New participant created (id):]", participantRawData[0].id)
+            participantId = participantRawData[0].id;
+          } catch (e) {
+            console.log("[ERROR] Participant creation failed: ", e);
+          }
+        }
+
+        /* Update session: */
+        try {
+          session = await this.callApi('Sessions', 'updateSession', {
+            id: session.id
+          }, {
+            "id": 0,
+            "name": "Session " + i,
+            "booking_start_time": 0,
+            "booking_end_time": 1,
+            "start_time": 0,
+            "end_time": 1,
+            "pretest": 0,
+            "project_id": projectId,
+            "participant_id": participantId,
+            "status": status
+          });
+          console.log("STATUS ", "PARTICIPATION CREATED n# ", i + 1);
+        } catch (e) {
+          console.log("[ERROR] Session updating failed: ", e);
+
+        }
+
+
+        /* Upload files: */
+        if (isUploadFiles) {
+          console.log("UPLOADING FILES");
+          for (let equipment_file_description_id of equipment_file_description_ids) {
+            let folder_name = this.equipment_file_description_id_directory[equipment_file_description_id].toLowerCase();
+            console.log("[Looking for foldername]: ", folder_name, " [FOR FILE_DESCRIPTION_ID] ", equipment_file_description_id)
+
+            let tree = this.dirTree(projectsDataPath);
+            for (let project_node of tree.children) {
+              if (project_node.name == projectName) {
+                let data_node = this.findDataNode(project_node);
+                let session_node;
+                for (let participantFolder of data_node.children) {
+                  if (participantFolder.name == participantName) {
+                    session_node = participantFolder;
+                  }
+                }
+
+                if (participantPresent) {
+                  let folderFound = false;
+                  if (session_node != undefined) {
+                    for (let software_node of session_node.children) {
+                      if (software_node.name.toLowerCase() == folder_name) {
+                        folderFound = true;
+                        if (software_node.children[0] == undefined)
+                          console.log('FILE NOT FOUND INSIDE THE FOLDER : ', software_node)
+                        else {
+                          let file_path = software_node.children[0].path;
+                          console.log("DATA FILE PATH : ", file_path)
+                          let file_extension = file_path.slice((file_path.lastIndexOf(".") - 1 >>> 0) + 2);
+                          let file_name = software_node.children[0].name.replace(/[^a-zA-Z.\d:]/g, '');
+                          console.log("ORIGINAL NAME:", software_node.children[0].name);
+                          console.log("SAFE NAME:", file_name);
+                          var data = {
+                            file_extension: file_extension,
+                            file_name: file_name,
+                            file_description_id: equipment_file_description_id,
+                            file: this.fs.createReadStream(this.path.normalize(file_path))
+                          };
+                          let uploaded = false;
+                          while (!uploaded) {
+                            try {
+                              await this.callRequest('/participations/' + session.participations.id + '/upload', data);
+                              uploaded = true;
+                              console.log("UPLOAD SUCCESSFULL, reuploading in 1sec")
+                            } catch (e) {
+                              console.error("UPLOAD FAILED, reuploading in 1sec")
+                              this.wait(1000);
+                            }
                           }
+                          console.log("STATUS ", "FILE UPLOADED NAME :", file_name, " SOFTWARE: ", folder_name);
                         }
-                        console.log("STATUS ", "FILE UPLOADED NAME :", file_name, " SOFTWARE: ", folder_name);
                       }
                     }
                   }
+                  if (!folderFound) {
+                    console.log("SOFTWARE FOLDER NOT FOUND", folder_name, " equipment_file_description_id : ", equipment_file_description_id);
+                  }
                 }
-                if (!folderFound) {
-                  console.log("SOFTWARE FOLDER NOT FOUND", folder_name, " equipment_file_description_id : ", equipment_file_description_id);
+                else {
+                  console.log("Skipping participant", participantName)
                 }
-              }
-              else {
-                console.log("Skipping participant", participantName)
               }
             }
           }
         }
       }
+      
+      //After uploads
+      if (isUploadFiles) {
+        // await this.startOperations(projectId, operationDelay, this.photoboothOperationsService, anchorFileDescriptionId);
+      }
+      return true; //if all import operations were successful
+    }catch(e){
+      console.log(e);
+      return false;
     }
-    //After uploads
-    if (isUploadFiles) {
-      // await this.startOperations(projectId, operationDelay, this.photoboothOperationsService, anchorFileDescriptionId);
-    }
+    
   }
 
   findDataNode(project_node) {
