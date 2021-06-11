@@ -1,20 +1,23 @@
-import {NgModule} from '@angular/core';
-import {CommonModule} from '@angular/common';
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MaterialModule } from '../../material-module';
+import { MatTableModule } from '@angular/material/table';
+import { SharedModule } from '../../shared/shared.module';
+import { ConnexionDialogModule } from './connexionDialog/connexionDialog.module'
+import { PhotoboothProjectsListModule } from './photoboothProjectsList/photoboothProjectsList.module'
+import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 
-import {MaterialModule} from '../../material-module';
-
-import {PhotoboothImportComponent} from './photoboothImport.component';
-import {SharedModule} from '../../shared/shared.module';
-
-import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
-
+import { PhotoboothImportComponent } from './photoboothImport.component';
 @NgModule({
   declarations: [PhotoboothImportComponent],
   imports: [
     MaterialModule,
-    CommonModule,
-    SharedModule,
+    MatTableModule,
     BrowserAnimationsModule,
+    ConnexionDialogModule,
+    PhotoboothProjectsListModule,
+    CommonModule, 
+    SharedModule, 
   ],
   exports: [
     PhotoboothImportComponent

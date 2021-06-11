@@ -1,0 +1,20 @@
+  <mat-card>
+    <div class="progress-spinner-container" *ngIf="isCreating">
+      <mat-spinner></mat-spinner>
+    </div>
+
+    <mat-card-title>Enter project events :</mat-card-title>
+    <div>
+      <hot-table #hotTable class="hot-table" licenseKey='non-commercial-and-evaluation' [rowHeaders]="true" [startRows]= 5 [data]="events">
+        <hot-column data="name" title="Name"></hot-column>
+        <hot-column data="start_marker" title="Marker start"></hot-column>
+        <hot-column data="end_marker" title="Marker end"></hot-column>
+        <hot-column data="equipment_software_id" title="Software id"></hot-column>
+        <hot-column data="equipment_software_version_id" title="Software version id"></hot-column>
+        <hot-column data="equipment_file_description_id" title="Equipment file description id"></hot-column>
+      </hot-table>
+    </div>
+  </mat-card>
+  <button mat-raised-button (click)="onCreateProject(hotTable)" [disabled]="isCreating">
+    <mat-icon mat-list-icon>create_new_folder</mat-icon> Create project
+  </button>

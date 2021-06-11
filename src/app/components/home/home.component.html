@@ -4,9 +4,12 @@
   </ngx-auth-firebaseui-login>
 </ng-template>
 
-<mat-tab-group>
-  <mat-tab label="Upload/Download">
-    <ng-container *ngIf="auth.user | async as user; else showLogin">
+<ng-container *ngIf="auth.user | async as user; else showLogin">
+  <mat-tab-group>
+    <mat-tab label="Photobooth Sync">
+      <photoboothImport></photoboothImport>
+    </mat-tab>
+    <mat-tab label="Upload/Download">
       <mat-card>
         <mat-card-title>Photobooth upload</mat-card-title>
         <button mat-raised-button class="selectFolderBtn" (click)="onFolderSelect()">
@@ -87,9 +90,6 @@
           </ng-template>
         </mat-card-actions>
       </mat-card>
-    </ng-container>
-  </mat-tab>
-  <mat-tab label="Photobooth Sync">
-    <photoboothImport></photoboothImport>
-  </mat-tab>
-</mat-tab-group>
+    </mat-tab>
+  </mat-tab-group>
+</ng-container>
