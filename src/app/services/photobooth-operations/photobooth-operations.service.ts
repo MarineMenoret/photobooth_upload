@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { ElectronService } from "../../core/services/electron/electron.service";
 import { ExperimentData } from "./experiment-data";
+import { Globals } from "../../shared/globals";
 
 
 /*FOR DEV*/
@@ -13,9 +14,6 @@ export class PhotoboothOperationsService {
 
   swagger: any;
   request: any;
-  api: any;
-  auth_token: any;
-  hostname: string;
   fs: any;
   path: any;
   dirTree: any;
@@ -46,23 +44,26 @@ export class PhotoboothOperationsService {
    * @param password 
    */
   async connect(hostname, email, password) {
-    this.hostname = hostname;
+    Globals.photoboothHostname = hostname;
     try {
       let jwt: any = await this.callJsonRequest('/authentication', {
         "strategy": "local",
         "email": email,
         "password": password
       });
-      this.auth_token = jwt.accessToken;
-      console.log("JWT Granted : ", this.auth_token)
+      let auth_token = jwt.accessToken;
+      console.log("JWT Granted : ", auth_token)
       let options = {
         authorizations: {
-          "bearerAuth": this.auth_token
+          "bearerAuth": auth_token
         }
       };
       let client = await this.swagger(hostname + '/swagger.json', options);
-      this.api = client.apis;
-      if (this.auth_token !== undefined) return true;
+      Globals.photoboothApi = client.apis;
+      if (auth_token !== undefined) {
+        Globals.photoboothAuthToken = auth_token;
+        return true;
+      } 
       else throw ("401 Invalid login information");
     } catch (e) {
       console.log("[ERROR] Photobooth Authentication failed: ", e);
@@ -75,14 +76,14 @@ export class PhotoboothOperationsService {
     payload = !this.isNull(payload) ? {
       requestBody: payload
     } : undefined;
-    let result = await this.api[tag][operation](parameters, payload);
+    let result = await Globals.photoboothApi[tag][operation](parameters, payload);
     return result.obj;
   };
 
 
   async callJsonRequest(endpoint, json) {
     return new Promise((resolve, reject) => {
-      let path = this.hostname + endpoint;
+      let path = Globals.photoboothHostname + endpoint;
       this.request.post({
         url: path,
         json: json,
@@ -101,8 +102,8 @@ export class PhotoboothOperationsService {
 
   async callRequest(endpoint, formdata) {
     return new Promise((resolve, reject) => {
-      let path = this.hostname + endpoint;
-      let authStr = 'Bearer ' + this.auth_token;
+      let path = Globals.photoboothHostname + endpoint;
+      let authStr = 'Bearer ' + Globals.photoboothAuthToken;
       this.request.post({
         url: path,
         headers: {

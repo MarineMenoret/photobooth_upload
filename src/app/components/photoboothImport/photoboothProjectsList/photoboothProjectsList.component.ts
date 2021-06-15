@@ -1,47 +1,40 @@
-
-import { Component, Inject } from "@angular/core";
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from "@angular/material/dialog";
-import { CreatePhotoboothProject } from "./createPhotoboothProject/createPhotoboothProject.component"
+import { Component, Inject, OnInit } from "@angular/core";
 import { PhotoboothOperationsService } from "../../../services/photobooth-operations/photobooth-operations.service";
 import { MatSnackBar } from "@angular/material/snack-bar";
+import { Router } from "@angular/router";
+import { Globals } from "../../../shared/globals";
 @Component({
   selector: "photoboothProjectsList",
   templateUrl: "./photoboothProjectsList.component.html",
   styleUrls: ["./photoboothProjectsList.component.scss"]
 })
-export class PhotoboothProjectsListComponent {
-  photoboothProjectsData: Array<object>;
-  photoboothProjectsNames: Array<string>;
+export class PhotoboothProjectsListComponent implements OnInit{
+  photoboothProjects: Array<object>;
   displayedColumns = ["Projects", "actions-col"];
   projectsDirLocalPath: string; //local path of directory containing all projects folder
-  selectedProjectLocalPath: string; //local path of selected project to import into photobooth
   isImporting: boolean;
 
   constructor(
-    public dialogRef: MatDialogRef<PhotoboothProjectsListComponent>,
-    @Inject(MAT_DIALOG_DATA) public data,
-    public matDialog: MatDialog,
     private photoboothOperationsService: PhotoboothOperationsService,
+    private router: Router,
     private snackBar: MatSnackBar
   ) { 
-    this.photoboothProjectsData = this.data.photoboothProjects;
-    this.projectsDirLocalPath = this.data.projectsDirLocalPath;
-    this.selectedProjectLocalPath = this.data.selectedProjectLocalPath;
-    this.photoboothProjectsNames = [];
-    this.photoboothProjectsData.forEach(project => {
-      this.photoboothProjectsNames.push(project['name']);
-    });
+    this.projectsDirLocalPath = Globals.projectsDirLocalPath;
+    console.log("Globals.projectsDirLocalPath : ", Globals.projectsDirLocalPath);
+  }
+
+  async ngOnInit(){
+    let photoboothProjectsData = await this.photoboothOperationsService.callApi('Projects', 'listProjects', { $limit: 100 });
+    this.photoboothProjects = photoboothProjectsData['data'];
     this.isImporting = false;
   }
 
+  onBackBtnClick(){
+    //back to local/cloud projects list
+  }
+
   onCreateNewProject() {
-    this.matDialog.open(CreatePhotoboothProject, {
-      data: {
-        selectedProjectLocalPath: this.selectedProjectLocalPath
-      },
-      minWidth: '80%',
-      height: '80%'
-    });
+    this.router.navigate(['createPhotoboothProject']);
   }
  
   async onSelect(projectName, photoboothProjectId) {
@@ -53,11 +46,9 @@ export class PhotoboothProjectsListComponent {
     if(result) {
       this.showSnackbar("Project successfully imported", "grey");
       this.isImporting = false;
-      this.dialogRef.close();
     } else {
       this.showSnackbar("Error during project importation. Please retry", "mat-warn");
     }
-
   }
 
   showSnackbar(msg, color) {

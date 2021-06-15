@@ -1,12 +1,12 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Router } from '@angular/router';
 import { ISyncProject } from "../../shared/interfaces/project";
 import { SyncService } from "../../services/sync/sync.service";
 import { Subscription } from "rxjs";
 import { ElectronService } from "../../core/services";
 import { animate, state, style, transition, trigger } from "@angular/animations";
 import { ISyncFile } from "../../shared/interfaces/file";
-import { MatDialog } from "@angular/material/dialog";
-import { ConnexionDialogComponent } from "../photoboothImport/connexionDialog/connexionDialog.component"
+import { Globals } from "../../shared/globals";
 
 @Component({
   selector: "photoboothImport",
@@ -28,12 +28,13 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   expandedSyncProject: ISyncProject | null;
   isLoading: boolean;
   projectsDirLocalPath: string;
-  localProjectsDirInfo: object;
+  localProjectsDirPaths: object;
 
-  constructor(private syncService: SyncService,
+  constructor(
+    private router: Router,
+    private syncService: SyncService,
     private electronService: ElectronService,
-    public matDialog: MatDialog) {
-  }
+    ) {}
 
   ngOnInit(): void {
     this.initialize();
@@ -64,9 +65,10 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
         if (!directory.canceled) {
           this.isLoading = true;
           this.projectsDirLocalPath = directory.filePaths[0];
+          Globals.projectsDirLocalPath = directory.filePaths[0];
           try {
             await this.syncService.getSyncProjects(directory.filePaths[0]);
-            this.localProjectsDirInfo = await this.syncService.getChildrenDirPath(directory.filePaths[0]);
+            this.localProjectsDirPaths = await this.syncService.getChildrenDirPath(directory.filePaths[0]);
           } catch (error) {
             console.log(error);
           }
@@ -104,16 +106,13 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   }
 
   onImportBtnClick(projectName) {
-    // console.log("projectName :", projectName);
-    // console.log("this.localProjectsDirInfo :", this.localProjectsDirInfo);
-    // console.log("this.localProjectsDirInfo[projectName] :", this.localProjectsDirInfo[projectName]);
-
-    this.matDialog.open(ConnexionDialogComponent, {
-      data: {
-        projectsDirLocalPath: this.projectsDirLocalPath,
-        selectedProjectLocalPath: this.localProjectsDirInfo[projectName]
-      },
-    });
+    Globals.selectedProjectLocalPath = this.localProjectsDirPaths[projectName];
+    console.log("Globals.selectedProjectLocalPath : ", Globals.selectedProjectLocalPath);
+    if (Globals.photoboothApi == undefined) {
+      this.router.navigate(['/photoboothConnexion'])
+    } else {
+      this.router.navigate(['/photoboothProjectsList'])
+    }
   }
 
   ngOnDestroy(): void {

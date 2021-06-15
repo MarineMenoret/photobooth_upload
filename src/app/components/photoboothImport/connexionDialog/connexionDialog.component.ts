@@ -1,10 +1,9 @@
 
 import { Component, Inject } from "@angular/core";
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from "@angular/material/dialog";
+import { Router } from '@angular/router';
 import { PhotoboothOperationsService } from "../../../services/photobooth-operations/photobooth-operations.service";
-import { PhotoboothProjectsListComponent } from "../photoboothProjectsList/photoboothProjectsList.component";
 import { MatSnackBar } from "@angular/material/snack-bar";
-
+import { Globals } from "../../../shared/globals";
 
 @Component({
   selector: "connexionDialog",
@@ -20,18 +19,16 @@ export class ConnexionDialogComponent {
   selectedProjectLocalPath: string;
 
   constructor(
-    public dialogRef: MatDialogRef<ConnexionDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data,
+    private router: Router,
     private photoboothOperationsService: PhotoboothOperationsService,
-    public matDialog: MatDialog,
     private snackBar: MatSnackBar
   ) {
-    this.projectsDirLocalPath = this.data.projectsDirLocalPath;
-    this.selectedProjectLocalPath = this.data.selectedProjectLocalPath;
+    this.projectsDirLocalPath = Globals.projectsDirLocalPath;
+    this.selectedProjectLocalPath = Globals.selectedProjectLocalPath;
   }
 
-  onCancel(): void {
-    this.dialogRef.close();
+  onCancel(){
+    //back to local/cloud projects list
   }
 
   async onConnexion() {
@@ -39,17 +36,7 @@ export class ConnexionDialogComponent {
 
     if (connected) {
       this.showSnackbar("Successfully connected.", "grey");
-      this.photoboothProjects = await this.photoboothOperationsService.callApi('Projects', 'listProjects', { $limit: 100 });
-      this.dialogRef.close();
-
-      this.matDialog.open(PhotoboothProjectsListComponent, {
-        data: {
-          photoboothProjects: this.photoboothProjects['data'],
-          projectsDirLocalPath: this.projectsDirLocalPath,
-          selectedProjectLocalPath: this.selectedProjectLocalPath
-        },
-        minWidth: '50%',
-      });
+      this.router.navigate(['/photoboothProjectsList']);
     } else {
       this.showSnackbar("Invalid login information.", "mat-warn");
     }

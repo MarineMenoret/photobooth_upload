@@ -1,6 +1,15 @@
 <header>
-  <div>
-    <img src="assets/logo/logo_t3l_text.png" />
+  <div class="logo" (click)="backHome()">
+    <img src="assets/logo/logo_t3l_text.png"/>
   </div>
-  <button *ngIf="auth.user | async as user" mat-raised-button (click)="logout()">Logout</button>
+  <div>
+    <mat-icon class="icons" (click)="backHome()" matTooltip="Back home">
+      home
+    </mat-icon>
+    <ng-container *ngIf="auth.user | async as user">
+      <mat-icon class="icons" matTooltip="Logout" (click)="logout()">
+        logout
+      </mat-icon>
+    </ng-container>
+  </div>
 </header>

@@ -1,7 +1,8 @@
-import { Component, Inject, Input, OnInit } from "@angular/core";
-import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
+import { Component, OnInit } from "@angular/core";
+// import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { PhotoboothOperationsService } from "../../../../services/photobooth-operations/photobooth-operations.service";
 import { MatSnackBar } from "@angular/material/snack-bar";
+import { Globals } from "../../../../shared/globals";
 
 @Component({
   selector: "createPhotoboothProject",
@@ -16,16 +17,18 @@ export class CreatePhotoboothProject implements OnInit {
   isCreating: boolean;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data,
-    public dialogRef: MatDialogRef<CreatePhotoboothProject>,
     private photoboothOperationsService: PhotoboothOperationsService,
     private snackBar: MatSnackBar
   ) {
-    this.selectedProjectLocalPath = this.data.selectedProjectLocalPath;
+    this.selectedProjectLocalPath = Globals.selectedProjectLocalPath;
     this.isCreating = false;
   }
 
   ngOnInit(): void { }
+
+  onBackBtnClick(){
+    //back to local/cloud projects list
+  }
 
   async onCreateProject() {
     this.isCreating = true;
@@ -34,7 +37,7 @@ export class CreatePhotoboothProject implements OnInit {
     if(result) {
       this.showSnackbar("Project successfully created", "grey");
       this.isCreating = false;
-      this.dialogRef.close();
+      // this.dialogRef.close();
     } else {
       this.showSnackbar("Error during project creation. Please retry", "mat-warn");
     }

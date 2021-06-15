@@ -26,6 +26,8 @@ import { AngularFirestoreModule } from '@angular/fire/firestore';
 import { AngularFireStorageModule } from '@angular/fire/storage';
 import { AngularFireAuthModule } from '@angular/fire/auth';
 
+import { HeaderModule } from './components/header/header.module';
+
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient): TranslateHttpLoader {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -34,14 +36,13 @@ export function HttpLoaderFactory(http: HttpClient): TranslateHttpLoader {
 @NgModule({
   declarations: [AppComponent],
   imports: [
-    // MaterialModule,
     BrowserAnimationsModule,
     BrowserModule,
     FormsModule,
     HttpClientModule,
     CoreModule,
     SharedModule,
-    // HeaderModule,
+    HeaderModule,
     HomeModule,
     AppRoutingModule,
     TranslateModule.forRoot({

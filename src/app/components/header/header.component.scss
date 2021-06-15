@@ -9,4 +9,16 @@
   header img {
     max-height: 50px;
   }
+  
+  header img:hover {
+    cursor: pointer;
+  }
+}
+
+.icons{
+  margin-left: 20px;
+}
+
+.icons:hover{
+  cursor: pointer;
 }

@@ -3,6 +3,12 @@
       <mat-spinner></mat-spinner>
     </div>
 
+    <div>
+      <mat-icon class="icons" (click)="onBackBtnClick()" matTooltip="Back to projects list">
+        arrow_back
+      </mat-icon>
+    </div>
+
     <mat-card-title>Enter project events :</mat-card-title>
     <div>
       <hot-table #hotTable class="hot-table" licenseKey='non-commercial-and-evaluation' [rowHeaders]="true" [startRows]= 5 [data]="events">
