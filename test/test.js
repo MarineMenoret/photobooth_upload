@@ -1,5 +1,5 @@
 const assert = require('assert');
-const firebase = require('@firebase/testing');
+const firebase = require('@firebase/rules-unit-testing');
 
 const MY_PROJECT_ID = "angular-electron-5f77c";
 const myId = "user_abc";
@@ -8,6 +8,7 @@ const adminId = "user_admin";
 const myAuth = {uid: myId, email: "abc@test.com"};
 const theirAuth = {uid: theirId, email: "@test.com"};
 const adminAuth = {uid: adminId, email: "admin@test.com"};
+const MY_BUCKET = "my-bucket";
 
 function getFirestore(auth){
     return firebase.initializeTestApp({projectId: MY_PROJECT_ID, auth: auth}).firestore();
@@ -15,6 +16,17 @@ function getFirestore(auth){
 
 function getAdminFirestore(){
     return firebase.initializeAdminApp({projectId: MY_PROJECT_ID}).firestore();
+}
+
+function getStorage(auth){
+    return firebase.initializeTestApp({
+        storageBucket: MY_BUCKET,
+        auth: auth
+      });
+}
+
+function getAdminStorage(){
+    return firebase.initializeAdminApp({ storageBucket: MY_BUCKET });
 }
 
 before (async() => {
@@ -219,6 +231,12 @@ describe("Photobooth upload", () => {
         const testDoc = db.collection("projects").doc("project_xyz");
         await firebase.assertSucceeds(testDoc.delete());
     });
+
+    // Storage
+    // it("Write to storage", async() => {
+    //     const app = getAdminStorage(adminAuth);
+    //     await firebase.assertSucceeds(app.storage().ref("test/hello-world").getMetadata());
+    // });
 
 });
 
