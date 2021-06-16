@@ -19,6 +19,7 @@ export class DirectoryTreeService implements OnDestroy {
 
   fs: typeof fs;
   path: typeof path;
+  private userId: string;
   directoryPath: string;
   directory: string;
   files: Array<IFile>;
@@ -56,6 +57,14 @@ export class DirectoryTreeService implements OnDestroy {
     this.uploadFinalized$.next(false);
     this.uploadStatusMsg$.next('');
     this.uploadCanceled = false;
+  }
+
+  setUserId(userId: string): void {
+    this.userId = userId;
+  }
+
+  getUserId(): string {
+    return this.userId;
   }
 
   async setDirectoryPath(directoryPath: string): Promise<IDirectoryTree> {
@@ -208,6 +217,7 @@ export class DirectoryTreeService implements OnDestroy {
     const relativeDirectoryTree = this.buildRelativeTree(directoryTreeClone);
 
     const project: IProject = {
+      authorId: this.userId,
       name: directoryTree.name,
       creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(this.directoryPath).birthtime),
       directoryTree: relativeDirectoryTree,

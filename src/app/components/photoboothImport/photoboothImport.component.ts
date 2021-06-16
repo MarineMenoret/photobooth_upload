@@ -1,20 +1,20 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
-import { ISyncProject } from "../../shared/interfaces/project";
-import { SyncService } from "../../services/sync/sync.service";
-import { Subscription } from "rxjs";
-import { ElectronService } from "../../core/services";
-import { animate, state, style, transition, trigger } from "@angular/animations";
-import { ISyncFile } from "../../shared/interfaces/file";
-import { MatDialog } from "@angular/material/dialog";
-import { ConnexionDialogComponent } from "../photoboothImport/connexionDialog/connexionDialog.component"
+import {Component, OnDestroy, OnInit} from "@angular/core";
+import {ISyncProject} from "../../shared/interfaces/project";
+import {SyncService} from "../../services/sync/sync.service";
+import {Subscription} from "rxjs";
+import {ElectronService} from "../../core/services";
+import {animate, state, style, transition, trigger} from "@angular/animations";
+import {ISyncFile} from "../../shared/interfaces/file";
+import {MatDialog} from "@angular/material/dialog";
+import {ConnexionDialogComponent} from "./connexionDialog/connexionDialog.component";
 
 @Component({
   selector: "photoboothImport",
   templateUrl: "./photoboothImport.component.html",
   styleUrls: ["./photoboothImport.component.scss"],
   animations: [trigger('detailExpand', [
-    state('collapsed', style({ height: '0px', minHeight: '0' })),
-    state('expanded', style({ height: '*' })),
+    state('collapsed', style({height: '0px', minHeight: '0'})),
+    state('expanded', style({height: '*'})),
     transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
   ]),
   ],
@@ -31,8 +31,8 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
   localProjectsDirInfo: object;
 
   constructor(private syncService: SyncService,
-    private electronService: ElectronService,
-    public matDialog: MatDialog) {
+              private electronService: ElectronService,
+              public matDialog: MatDialog) {
   }
 
   ngOnInit(): void {
@@ -103,7 +103,7 @@ export class PhotoboothImportComponent implements OnInit, OnDestroy {
     this.syncService.showSnackBar(message, event);
   }
 
-  onImportBtnClick(projectName) {
+  onImportBtnClick(projectName: string): void {
     // console.log("projectName :", projectName);
     // console.log("this.localProjectsDirInfo :", this.localProjectsDirInfo);
     // console.log("this.localProjectsDirInfo[projectName] :", this.localProjectsDirInfo[projectName]);

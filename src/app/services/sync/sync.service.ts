@@ -3,17 +3,17 @@ import {AngularFirestore, AngularFirestoreCollection} from "@angular/fire/firest
 import {IProject, ISyncProject} from "../../shared/interfaces/project";
 import {Observable, Subject, Subscription} from "rxjs";
 import firebase from "firebase";
-import Timestamp = firebase.firestore.Timestamp;
 import {ElectronService} from "../../core/services";
 import {DirectoryTreeService} from "../directory-tree/directory-tree.service";
 import {AngularFireStorage} from "@angular/fire/storage";
-import TaskState = firebase.storage.TaskState;
 import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
 import {IFile, ISyncFile} from "../../shared/interfaces/file";
 import {DialogData} from "../../shared/interfaces/dialog-data";
 import {MatDialog} from "@angular/material/dialog";
 import {SyncDialogComponent} from "../../components/sync-dialog/sync-dialog.component";
 import {MatSnackBar} from "@angular/material/snack-bar";
+import Timestamp = firebase.firestore.Timestamp;
+import TaskState = firebase.storage.TaskState;
 
 
 @Injectable({
@@ -85,6 +85,7 @@ export class SyncService {
         this.directoryTreeService.directoryPath = childPath;
 
         const project: IProject = {
+          authorId: this.directoryTreeService.getUserId(),
           name: child,
           creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(childPath).birthtime),
           directoryTree: this.directoryTreeService.buildRelativeTree(await this.directoryTreeService.buildTree(childPath)),
@@ -98,13 +99,12 @@ export class SyncService {
     this.localProjects$.next(projects);
   }
 
-  public async getChildrenDirPath(parentDirectoryPath: string) {
+  public getChildrenDirPath(parentDirectoryPath: string): any {
     const directoryChildren = this.electronService.fs.readdirSync(parentDirectoryPath);
-    let childrenDirData = {};
+    const childrenDirData = {};
 
     for (const child of directoryChildren) {
-      const childPath = this.electronService.path.join(parentDirectoryPath, child);
-      childrenDirData[child] = childPath;
+      childrenDirData[child] = this.electronService.path.join(parentDirectoryPath, child);
     }
 
     return childrenDirData;
@@ -137,6 +137,7 @@ export class SyncService {
       if (localProjectIndex == -1) {
         projects.push(
           {
+            authorId: remoteProject.authorId,
             name: remoteProject.name,
             creationDate: remoteProject.creationDate,
             directoryTree: remoteProject.directoryTree,
@@ -196,6 +197,7 @@ export class SyncService {
       if (remoteProjectIndex == -1) {
         projects.push(
           {
+            authorId: localProject.authorId,
             name: localProject.name,
             creationDate: localProject.creationDate,
             directoryTree: localProject.directoryTree,
@@ -418,6 +420,7 @@ export class SyncService {
         .then((querySnapshot) => {
           if (querySnapshot.empty) {
             const project: IProject = {
+              authorId: this.directoryTreeService.getUserId(),
               name: projectName,
               creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(projectPath).birthtime),
               directoryTree: {name: projectName},
