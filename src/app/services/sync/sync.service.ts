@@ -22,6 +22,7 @@ import TaskState = firebase.storage.TaskState;
 export class SyncService {
   private subscriptions: Array<Subscription>;
   private projectsCollection: AngularFirestoreCollection<IProject>;
+  private adminsCollection: AngularFirestoreCollection<IProject>;
   private projectsDirectory: string;
   private remoteProjects: Array<IProject>;
   private remoteProjects$: Subject<Array<IProject>>;
@@ -41,6 +42,7 @@ export class SyncService {
   initialize(): void {
     this.subscriptions = new Array<Subscription>();
     this.projectsCollection = this.afs.collection<IProject>('projects');
+    this.adminsCollection = this.afs.collection<IProject>('admins');
     this.projectsDirectory = "";
     this.remoteProjects = new Array<IProject>();
     this.remoteProjects$ = new Subject<Array<IProject>>();
@@ -112,20 +114,40 @@ export class SyncService {
 
   private getRemoteProjects(): void {
     const projects = new Array<IProject>();
-    const projectsSubscription = this.projectsCollection.get()
-      .subscribe(
-        (querySnapshot) => {
-          querySnapshot.forEach(doc => projects.push(doc.data()));
-          this.remoteProjects$.next(projects);
-        },
-        (error) => {
-          console.log(error);
-        },
-        () => {
-          console.log('The list of remote projects downloaded successfully.');
-          projectsSubscription.unsubscribe();
-        }
-      );
+
+    //Check if user is an admin in order to get projects according to role
+      this.afs.firestore.collection("admins").doc(firebase.auth().currentUser.uid).get()
+        .then(docSnapshot => {
+          if (docSnapshot.exists) {
+            console.log("The user is an admin. List all projects");
+            const projectsSubscription = this.projectsCollection.get()
+            .subscribe(
+              (querySnapshot) => {
+                querySnapshot.forEach(doc => projects.push(doc.data()));
+                this.remoteProjects$.next(projects);
+              },
+              (error) => {
+                console.log(error);
+              },
+              () => {
+                console.log('The list of remote projects downloaded successfully.');
+                projectsSubscription.unsubscribe();
+              }
+            );
+          }
+          else {
+            console.log("The user is not an admin.");
+            this.projectsCollection.ref.where("authorId",  "==", firebase.auth().currentUser.uid).get().then((snapshot) => {
+                snapshot.forEach(doc => projects.push(doc.data()));
+                this.remoteProjects$.next(projects);
+                },
+                (error) => {
+                  console.log(error);
+                }
+              );
+          }
+        });
+
   }
 
   private compareProjects(): void {
