@@ -3,17 +3,17 @@ import {AngularFirestore, AngularFirestoreCollection} from "@angular/fire/firest
 import {IProject, ISyncProject} from "../../shared/interfaces/project";
 import {Observable, Subject, Subscription} from "rxjs";
 import firebase from "firebase";
-import Timestamp = firebase.firestore.Timestamp;
 import {ElectronService} from "../../core/services";
 import {DirectoryTreeService} from "../directory-tree/directory-tree.service";
 import {AngularFireStorage} from "@angular/fire/storage";
-import TaskState = firebase.storage.TaskState;
 import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
 import {IFile, ISyncFile} from "../../shared/interfaces/file";
 import {DialogData} from "../../shared/interfaces/dialog-data";
 import {MatDialog} from "@angular/material/dialog";
 import {SyncDialogComponent} from "../../components/sync-dialog/sync-dialog.component";
 import {MatSnackBar} from "@angular/material/snack-bar";
+import Timestamp = firebase.firestore.Timestamp;
+import TaskState = firebase.storage.TaskState;
 
 
 @Injectable({
@@ -22,6 +22,7 @@ import {MatSnackBar} from "@angular/material/snack-bar";
 export class SyncService {
   private subscriptions: Array<Subscription>;
   private projectsCollection: AngularFirestoreCollection<IProject>;
+  private adminsCollection: AngularFirestoreCollection<IProject>;
   private projectsDirectory: string;
   private remoteProjects: Array<IProject>;
   private remoteProjects$: Subject<Array<IProject>>;
@@ -41,6 +42,7 @@ export class SyncService {
   initialize(): void {
     this.subscriptions = new Array<Subscription>();
     this.projectsCollection = this.afs.collection<IProject>('projects');
+    this.adminsCollection = this.afs.collection<IProject>('admins');
     this.projectsDirectory = "";
     this.remoteProjects = new Array<IProject>();
     this.remoteProjects$ = new Subject<Array<IProject>>();
@@ -82,9 +84,10 @@ export class SyncService {
 
       if (this.electronService.fs.lstatSync(childPath).isDirectory()) {
         this.directoryTreeService.initialize();
-        this.directoryTreeService.directory = child;
+        this.directoryTreeService.directoryPath = childPath;
 
         const project: IProject = {
+          authorId: this.directoryTreeService.getUserId(),
           name: child,
           creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(childPath).birthtime),
           directoryTree: this.directoryTreeService.buildRelativeTree(await this.directoryTreeService.buildTree(childPath)),
@@ -98,22 +101,53 @@ export class SyncService {
     this.localProjects$.next(projects);
   }
 
+  public getChildrenDirPath(parentDirectoryPath: string): any {
+    const directoryChildren = this.electronService.fs.readdirSync(parentDirectoryPath);
+    const childrenDirData = {};
+
+    for (const child of directoryChildren) {
+      childrenDirData[child] = this.electronService.path.join(parentDirectoryPath, child);
+    }
+
+    return childrenDirData;
+  }
+
   private getRemoteProjects(): void {
     const projects = new Array<IProject>();
-    const projectsSubscription = this.projectsCollection.get()
-      .subscribe(
-        (querySnapshot) => {
-          querySnapshot.forEach(doc => projects.push(doc.data()));
-          this.remoteProjects$.next(projects);
-        },
-        (error) => {
-          console.log(error);
-        },
-        () => {
-          console.log('The list of remote projects downloaded successfully.');
-          projectsSubscription.unsubscribe();
-        }
-      );
+
+    //Check if user is an admin in order to get projects according to role
+      this.afs.firestore.collection("admins").doc(firebase.auth().currentUser.uid).get()
+        .then(docSnapshot => {
+          if (docSnapshot.exists) {
+            console.log("The user is an admin. List all projects");
+            const projectsSubscription = this.projectsCollection.get()
+            .subscribe(
+              (querySnapshot) => {
+                querySnapshot.forEach(doc => projects.push(doc.data()));
+                this.remoteProjects$.next(projects);
+              },
+              (error) => {
+                console.log(error);
+              },
+              () => {
+                console.log('The list of remote projects downloaded successfully.');
+                projectsSubscription.unsubscribe();
+              }
+            );
+          }
+          else {
+            console.log("The user is not an admin.");
+            this.projectsCollection.ref.where("authorId",  "==", firebase.auth().currentUser.uid).get().then((snapshot) => {
+                snapshot.forEach(doc => projects.push(doc.data()));
+                this.remoteProjects$.next(projects);
+                },
+                (error) => {
+                  console.log(error);
+                }
+              );
+          }
+        });
+
   }
 
   private compareProjects(): void {
@@ -125,6 +159,7 @@ export class SyncService {
       if (localProjectIndex == -1) {
         projects.push(
           {
+            authorId: remoteProject.authorId,
             name: remoteProject.name,
             creationDate: remoteProject.creationDate,
             directoryTree: remoteProject.directoryTree,
@@ -184,6 +219,7 @@ export class SyncService {
       if (remoteProjectIndex == -1) {
         projects.push(
           {
+            authorId: localProject.authorId,
             name: localProject.name,
             creationDate: localProject.creationDate,
             directoryTree: localProject.directoryTree,
@@ -406,6 +442,7 @@ export class SyncService {
         .then((querySnapshot) => {
           if (querySnapshot.empty) {
             const project: IProject = {
+              authorId: this.directoryTreeService.getUserId(),
               name: projectName,
               creationDate: Timestamp.fromDate(this.electronService.fs.lstatSync(projectPath).birthtime),
               directoryTree: {name: projectName},

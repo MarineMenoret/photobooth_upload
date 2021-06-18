@@ -1,13 +1,13 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from "@angular/core";
-import { DirectoryTreeService } from "../../services/directory-tree/directory-tree.service";
-import { ElectronService } from "../../core/services";
-import { Subscription } from "rxjs";
-import { AuthService } from "../../services/auth/auth.service";
-import { StorageService } from "../../services/storage/storage.service";
-import { MatSelectionListChange } from "@angular/material/list";
-import { Reference } from "@angular/fire/storage/interfaces";
-import { Dialog } from "electron";
-import { IDirectoryTree } from "../../shared/interfaces/directory-tree";
+import {ChangeDetectorRef, Component, OnDestroy, OnInit} from "@angular/core";
+import {DirectoryTreeService} from "../../services/directory-tree/directory-tree.service";
+import {ElectronService} from "../../core/services";
+import {Subscription} from "rxjs";
+import {AuthService} from "../../services/auth/auth.service";
+import {StorageService} from "../../services/storage/storage.service";
+import {MatSelectionListChange} from "@angular/material/list";
+import {Reference} from "@angular/fire/storage/interfaces";
+import {Dialog} from "electron";
+import {IDirectoryTree} from "../../shared/interfaces/directory-tree";
 import * as request from 'request';
 
 @Component({
@@ -48,6 +48,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.auth.authState.subscribe((authState) => {
       if (authState) {
         this.getProjectFolders();
+        this.directoryTreeService.setUserId(authState.uid);
       } else {
         this.initialize();
       }

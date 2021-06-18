@@ -6,6 +6,7 @@ import Timestamp = firebase.firestore.Timestamp;
 export type SyncState = 'cloud' | 'local' | 'synchronized' | 'unsynchronized' | 'isSynchronizing';
 
 export interface IProject {
+  authorId: string;
   name: string;
   creationDate: Timestamp;
   directoryTree: IDirectoryTree;
